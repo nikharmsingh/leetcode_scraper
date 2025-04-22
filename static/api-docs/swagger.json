@@ -1,0 +1,161 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "LeetCode Scraper API",
+    "description": "API for scraping and retrieving LeetCode problems",
+    "version": "1.0.0",
+    "contact": {
+      "name": "API Support"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000",
+      "description": "Local development server"
+    }
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "Get Homepage",
+        "description": "Returns the homepage of the LeetCode Scraper application",
+        "responses": {
+          "200": {
+            "description": "Homepage HTML content"
+          }
+        }
+      }
+    },
+    "/problems": {
+      "get": {
+        "summary": "Get Problems Page",
+        "description": "Returns the problems page of the LeetCode Scraper application",
+        "responses": {
+          "200": {
+            "description": "Problems page HTML content"
+          }
+        }
+      }
+    },
+    "/scrape-leetcode": {
+      "get": {
+        "summary": "Get LeetCode Problems",
+        "description": "Retrieves a list of LeetCode problems with pagination",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number for pagination",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "description": "Number of items per page",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "success",
+                        "error"
+                      ]
+                    },
+                    "problems": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "description": "Problem ID"
+                          },
+                          "title": {
+                            "type": "string",
+                            "description": "Problem title"
+                          },
+                          "difficulty": {
+                            "type": "string",
+                            "enum": [
+                              "Easy",
+                              "Medium",
+                              "Hard"
+                            ],
+                            "description": "Problem difficulty level"
+                          },
+                          "acceptance_rate": {
+                            "type": "number",
+                            "description": "Problem acceptance rate"
+                          },
+                          "url": {
+                            "type": "string",
+                            "description": "Problem URL on LeetCode"
+                          }
+                        }
+                      }
+                    },
+                    "total": {
+                      "type": "integer",
+                      "description": "Total number of problems"
+                    },
+                    "current_page": {
+                      "type": "integer",
+                      "description": "Current page number"
+                    },
+                    "total_pages": {
+                      "type": "integer",
+                      "description": "Total number of pages"
+                    },
+                    "per_page": {
+                      "type": "integer",
+                      "description": "Number of items per page"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "error"
+                      ]
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

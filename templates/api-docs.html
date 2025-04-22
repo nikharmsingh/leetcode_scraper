@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LeetCode Scraper API Documentation</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.11.0/swagger-ui.css">
+  <style>
+    :root {
+      --primary-color: #1a1a1a;
+      --secondary-color: #2d2d2d;
+      --accent-color: #ffa116;
+      --text-primary: #1a1a1a;
+      --text-secondary: #666666;
+      --background-primary: #ffffff;
+    }
+
+    body {
+      margin: 0;
+      background-color: var(--background-primary);
+    }
+
+    .navbar {
+      background-color: var(--primary-color);
+      padding: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .navbar-brand {
+      color: white;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .back-btn {
+      color: white;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: opacity 0.2s ease;
+    }
+
+    .back-btn:hover {
+      opacity: 0.8;
+    }
+
+    #swagger-ui {
+      padding: 1rem;
+    }
+  </style>
+</head>
+
+<body>
+  <nav class="navbar">
+    <a href="/" class="navbar-brand">
+      <i class="bi bi-code-square"></i>LeetCode Scraper API
+    </a>
+    <a href="/" class="back-btn">
+      <i class="bi bi-arrow-left"></i>Back to Home
+    </a>
+  </nav>
+
+  <div id="swagger-ui"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.11.0/swagger-ui-bundle.js"></script>
+  <script>
+    window.onload = () => {
+      window.ui = SwaggerUIBundle({
+        url: "/api-docs/swagger.json",
+        dom_id: '#swagger-ui',
+        deepLinking: true,
+        presets: [
+          SwaggerUIBundle.presets.apis,
+          SwaggerUIBundle.SwaggerUIStandalonePreset
+        ],
+        layout: "BaseLayout",
+        docExpansion: "list",
+        defaultModelsExpandDepth: -1,
+        displayRequestDuration: true,
+        filter: true
+      });
+    };
+  </script>
+</body>
+
+</html>

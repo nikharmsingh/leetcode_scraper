@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify, redirect, url_for, request
+from flask import Flask, render_template, jsonify, redirect, url_for, request, send_from_directory
 import requests
 from bs4 import BeautifulSoup
 import os
@@ -16,6 +16,14 @@ def home():
 @app.route('/problems')
 def problems():
     return render_template('problems.html')
+
+@app.route('/api-docs')
+def api_docs():
+    return render_template('api-docs.html')
+
+@app.route('/api-docs/swagger.json')
+def swagger_json():
+    return send_from_directory('static/api-docs', 'swagger.json')
 
 @app.route('/scrape-leetcode')
 def scrape_leetcode():
