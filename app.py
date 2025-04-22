@@ -6,7 +6,13 @@ from dotenv import load_dotenv
 import time
 import json
 
-app = Flask(__name__)
+# Get the absolute path to the current directory
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+app = Flask(__name__,
+            template_folder=os.path.join(BASE_DIR, 'templates'),
+            static_folder=os.path.join(BASE_DIR, 'static'),
+            static_url_path='')
 load_dotenv()
 
 @app.route('/')
@@ -17,13 +23,21 @@ def home():
 def problems():
     return render_template('problems.html')
 
-@app.route('/api-docs')
+@app.route('/api')
 def api_docs():
-    return render_template('api-docs.html')
+    try:
+        return render_template('api-docs.html')
+    except Exception as e:
+        print(f"Error rendering api-docs template: {str(e)}")
+        return str(e), 500
 
-@app.route('/api-docs/swagger.json')
+@app.route('/api/swagger.json')
 def swagger_json():
-    return send_from_directory('static/api-docs', 'swagger.json')
+    try:
+        return send_from_directory(os.path.join(BASE_DIR, 'static', 'api-docs'), 'swagger.json')
+    except Exception as e:
+        print(f"Error serving swagger.json: {str(e)}")
+        return str(e), 500
 
 @app.route('/scrape-leetcode')
 def scrape_leetcode():
