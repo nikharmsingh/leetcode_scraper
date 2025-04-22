@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LeetCode User Statistics</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary-color: #1a1a1a;
+      --secondary-color: #2d2d2d;
+      --accent-color: #ffa116;
+      --success-color: #00b8a3;
+      --warning-color: #ffc01e;
+      --danger-color: #ef4743;
+      --text-primary: #1a1a1a;
+      --text-secondary: #666666;
+      --background-primary: #ffffff;
+      --background-secondary: #f5f5f5;
+      --border-color: #e5e5e5;
+    }
+
+    body {
+      background-color: var(--background-primary);
+      font-family: 'Inter', sans-serif;
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .navbar {
+      background-color: var(--primary-color);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      padding: 0.75rem 0;
+    }
+
+    .navbar-brand {
+      color: white !important;
+      font-weight: 600;
+      font-size: 1.25rem;
+    }
+
+    .back-button {
+      background-color: var(--background-secondary);
+      color: var(--text-primary);
+      border: none;
+      transition: all 0.2s ease;
+      font-weight: 500;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+    }
+
+    .back-button:hover {
+      background-color: var(--border-color);
+      transform: translateX(-3px);
+    }
+
+    .hero-section {
+      background-color: var(--primary-color);
+      color: white;
+      padding: 3rem 0;
+      margin-bottom: 2rem;
+      text-align: center;
+    }
+
+    .hero-title {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 2rem;
+    }
+
+    .search-container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .search-input {
+      border: none;
+      border-radius: 4px;
+      padding: 0.75rem 1rem;
+      font-size: 1rem;
+      width: 100%;
+    }
+
+    .search-button {
+      background-color: var(--accent-color);
+      border: none;
+      color: var(--primary-color);
+      font-weight: 600;
+      padding: 0.75rem 1.5rem;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+    }
+
+    .search-button:hover {
+      background-color: #e69100;
+    }
+
+    .stats-card {
+      background: var(--background-primary);
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      padding: 1.5rem;
+      height: 100%;
+      transition: transform 0.2s ease;
+      border: 1px solid var(--border-color);
+    }
+
+    .stats-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .stats-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: var(--text-primary);
+    }
+
+    .stats-subtitle {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      margin-bottom: 0;
+    }
+
+    .stats-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--accent-color);
+      margin: 1rem 0;
+    }
+
+    .stats-value.easy {
+      color: var(--success-color);
+    }
+
+    .stats-value.medium {
+      color: var(--warning-color);
+    }
+
+    .stats-value.hard {
+      color: var(--danger-color);
+    }
+
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .error-message {
+      display: none;
+      color: var(--danger-color);
+      text-align: center;
+      padding: 1rem;
+      margin-top: 1rem;
+    }
+
+    .stats-container {
+      display: none;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .stats-container.visible {
+      opacity: 1;
+    }
+
+    .nav-link {
+      color: rgba(255, 255, 255, 0.8) !important;
+      font-weight: 500;
+      transition: color 0.2s ease;
+    }
+
+    .nav-link:hover {
+      color: white !important;
+    }
+
+    .nav-link.active {
+      color: white !important;
+      font-weight: 600;
+    }
+  </style>
+</head>
+
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container">
+      <a class="navbar-brand" href="/">
+        <i class="bi bi-code-square me-2"></i>LeetCode Scraper
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item">
+            <a class="nav-link" href="/">Home</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/problems">Problems</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link active" href="/user-stats">User Stats</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/api">API</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div class="hero-section">
+    <div class="container">
+      <h1 class="hero-title">LeetCode User Statistics</h1>
+      <div class="search-container">
+        <form id="searchForm" class="d-flex gap-2">
+          <input type="text" class="search-input" id="username" name="username" placeholder="Enter LeetCode username..." required>
+          <button type="submit" class="search-button">
+            <i class="bi bi-search me-2"></i>Search
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="container mb-5">
+    <div class="loading" id="loading">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+      <p class="mt-2">Fetching user statistics...</p>
+    </div>
+
+    <div class="error-message" id="errorMessage"></div>
+
+    <div class="stats-container" id="statsContainer">
+      <div class="row g-4 mb-4">
+        <div class="col-md-3">
+          <div class="stats-card">
+            <h3 class="stats-title">Ranking</h3>
+            <div class="stats-value" id="ranking">-</div>
+            <p class="stats-subtitle">Global Ranking</p>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="stats-card">
+            <h3 class="stats-title">Reputation</h3>
+            <div class="stats-value" id="reputation">-</div>
+            <p class="stats-subtitle">Community Reputation</p>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="stats-card">
+            <h3 class="stats-title">Rating</h3>
+            <div class="stats-value" id="rating">-</div>
+            <p class="stats-subtitle">Star Rating</p>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="stats-card">
+            <h3 class="stats-title">Total Solved</h3>
+            <div class="stats-value" id="totalSolved">-</div>
+            <p class="stats-subtitle">Problems Solved</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-4">
+        <div class="col-md-4">
+          <div class="stats-card">
+            <h3 class="stats-title">Easy Problems</h3>
+            <div class="stats-value easy" id="easySolved">-</div>
+            <p class="stats-subtitle">Solved / Total</p>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="stats-card">
+            <h3 class="stats-title">Medium Problems</h3>
+            <div class="stats-value medium" id="mediumSolved">-</div>
+            <p class="stats-subtitle">Solved / Total</p>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="stats-card">
+            <h3 class="stats-title">Hard Problems</h3>
+            <div class="stats-value hard" id="hardSolved">-</div>
+            <p class="stats-subtitle">Solved / Total</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const searchForm = document.getElementById('searchForm');
+    const loading = document.getElementById('loading');
+    const errorMessage = document.getElementById('errorMessage');
+    const statsContainer = document.getElementById('statsContainer');
+
+    searchForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = document.getElementById('username').value.trim();
+
+      if (!username) {
+        showError('Please enter a username');
+        return;
+      }
+
+      showLoading();
+      hideError();
+      hideStats();
+
+      try {
+        const response = await fetch('/user-stats', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: `username=${encodeURIComponent(username)}`
+        });
+
+        const data = await response.json();
+
+        if (data.status === 'error') {
+          showError(data.message);
+          return;
+        }
+
+        updateStats(data.data);
+        showStats();
+      } catch (error) {
+        showError('An error occurred while fetching user statistics');
+      } finally {
+        hideLoading();
+      }
+    });
+
+    function updateStats(data) {
+      // Update profile stats
+      document.getElementById('ranking').textContent = data.profile.ranking.toLocaleString();
+      document.getElementById('reputation').textContent = data.profile.reputation;
+      document.getElementById('rating').textContent = data.profile.starRating;
+
+      // Create a map for quick lookup of solved counts by difficulty
+      const solvedMap = {};
+      data.submitStats.acSubmissionNum.forEach(stat => {
+        solvedMap[stat.difficulty] = stat.count;
+      });
+
+      // Update total solved count
+      const totalSolved = solvedMap['All'] || 0;
+      const totalProblems = data.totalProblems.total;
+      document.getElementById('totalSolved').textContent = 
+        `${totalSolved.toLocaleString()} / ${totalProblems.toLocaleString()}`;
+
+      // Update each difficulty card with solved/total counts
+      ['Easy', 'Medium', 'Hard'].forEach(difficulty => {
+        const solved = solvedMap[difficulty] || 0;
+        const total = data.totalProblems.byDifficulty[difficulty];
+        document.getElementById(`${difficulty.toLowerCase()}Solved`).textContent = 
+          `${solved.toLocaleString()} / ${total.toLocaleString()}`;
+      });
+    }
+
+    function showLoading() {
+      loading.style.display = 'block';
+    }
+
+    function hideLoading() {
+      loading.style.display = 'none';
+    }
+
+    function showError(message) {
+      errorMessage.textContent = message;
+      errorMessage.style.display = 'block';
+    }
+
+    function hideError() {
+      errorMessage.style.display = 'none';
+    }
+
+    function showStats() {
+      statsContainer.style.display = 'block';
+      setTimeout(() => {
+        statsContainer.classList.add('visible');
+      }, 50);
+    }
+
+    function hideStats() {
+      statsContainer.classList.remove('visible');
+      setTimeout(() => {
+        statsContainer.style.display = 'none';
+      }, 300);
+    }
+  </script>
+</body>
+
+</html> 

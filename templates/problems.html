@@ -292,23 +292,33 @@
     <div class="section-title">Problem List</div>
     <div class="filter-section">
       <div class="row align-items-center">
-        <div class="col-md-6">
-          <h5 class="mb-0">Sort By:</h5>
+        <div class="col-md-4 mb-3 mb-md-0">
+          <div class="input-group">
+            <input type="text" class="form-control" id="searchInput" placeholder="Search problems by name...">
+            <button class="btn btn-primary" type="button" id="searchButton">
+              <i class="bi bi-search me-2"></i>Search
+            </button>
+          </div>
         </div>
-        <div class="col-md-6 text-end">
+        <div class="col-md-4 mb-3 mb-md-0">
+          <div class="input-group">
+            <label class="input-group-text" for="sortSelect">Sort by</label>
+            <select class="form-select" id="sortSelect">
+              <option value="id:asc">ID (Ascending)</option>
+              <option value="id:desc">ID (Descending)</option>
+              <option value="difficulty:asc">Difficulty (Easy → Hard)</option>
+              <option value="difficulty:desc">Difficulty (Hard → Easy)</option>
+              <option value="acceptance:asc">Acceptance Rate (Low → High)</option>
+              <option value="acceptance:desc">Acceptance Rate (High → Low)</option>
+            </select>
+          </div>
+        </div>
+        <div class="col-md-4 text-md-end">
           <div class="btn-group" role="group">
-            <button type="button" class="btn btn-outline-primary sort-btn" data-sort="id">
-              ID <i class="bi bi-arrow-down-up sort-icon" id="sort-id"></i>
-            </button>
-            <button type="button" class="btn btn-outline-primary sort-btn" data-sort="title">
-              Title <i class="bi bi-arrow-down-up sort-icon" id="sort-title"></i>
-            </button>
-            <button type="button" class="btn btn-outline-primary sort-btn" data-sort="difficulty">
-              Difficulty <i class="bi bi-arrow-down-up sort-icon" id="sort-difficulty"></i>
-            </button>
-            <button type="button" class="btn btn-outline-primary sort-btn" data-sort="acceptance">
-              Acceptance <i class="bi bi-arrow-down-up sort-icon" id="sort-acceptance"></i>
-            </button>
+            <button type="button" class="btn btn-outline-primary active" data-difficulty="all">All</button>
+            <button type="button" class="btn btn-outline-primary" data-difficulty="Easy">Easy</button>
+            <button type="button" class="btn btn-outline-primary" data-difficulty="Medium">Medium</button>
+            <button type="button" class="btn btn-outline-primary" data-difficulty="Hard">Hard</button>
           </div>
         </div>
       </div>
@@ -352,26 +362,13 @@
     let totalPages = 1;
     let currentSort = { field: 'id', direction: 'asc' };
     let problems = [];
+    let currentDifficulty = 'all';
+    let currentSearchQuery = '';
 
-    function sortProblems(field) {
-      if (currentSort.field === field) {
-        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
-      } else {
-        currentSort.field = field;
-        currentSort.direction = 'asc';
-      }
+    function sortProblems() {
+      const [field, direction] = document.getElementById('sortSelect').value.split(':');
+      currentSort = { field, direction };
 
-      // Update sort icons
-      document.querySelectorAll('.sort-icon').forEach(icon => {
-        icon.classList.remove('active', 'bi-arrow-up', 'bi-arrow-down');
-        icon.classList.add('bi-arrow-down-up');
-      });
-
-      const currentIcon = document.getElementById(`sort-${field}`);
-      currentIcon.classList.remove('bi-arrow-down-up');
-      currentIcon.classList.add('active', currentSort.direction === 'asc' ? 'bi-arrow-up' : 'bi-arrow-down');
-
-      // Sort problems
       problems.sort((a, b) => {
         let aVal = a[field === 'acceptance' ? 'acceptance_rate' : field];
         let bVal = b[field === 'acceptance' ? 'acceptance_rate' : field];
@@ -382,7 +379,13 @@
           bVal = difficultyOrder[bVal];
         }
 
-        if (currentSort.direction === 'asc') {
+        // Convert to numbers for numerical comparison
+        if (field === 'id' || field === 'acceptance') {
+          aVal = parseFloat(aVal);
+          bVal = parseFloat(bVal);
+        }
+
+        if (direction === 'asc') {
           return aVal > bVal ? 1 : -1;
         } else {
           return aVal < bVal ? 1 : -1;
@@ -398,9 +401,14 @@
 
       problems.forEach(problem => {
         const row = document.createElement('tr');
+        row.className = 'table-row';
         row.innerHTML = `
           <td>${problem.id}</td>
-          <td>${problem.title}</td>
+          <td>
+            <a href="${problem.url}" target="_blank" class="problem-title">
+              ${problem.title}
+            </a>
+          </td>
           <td class="difficulty-${problem.difficulty.toLowerCase()}">${problem.difficulty}</td>
           <td>${problem.acceptance_rate}%</td>
           <td>
@@ -476,45 +484,147 @@
       tableBody.innerHTML = '';
 
       try {
-        const response = await fetch(`/scrape-leetcode?page=${currentPage}`);
+        // First fetch the total problem counts
+        const countsResponse = await fetch('/problem-counts');
+        const countsData = await countsResponse.json();
+
+        if (countsData.status === 'success') {
+          // Update the stats cards with accurate counts
+          document.getElementById('total-problems').textContent = countsData.data.total;
+          document.getElementById('easy-problems').textContent = countsData.data.byDifficulty.Easy;
+          document.getElementById('medium-problems').textContent = countsData.data.byDifficulty.Medium;
+          document.getElementById('hard-problems').textContent = countsData.data.byDifficulty.Hard;
+        }
+
+        // Then fetch the problems list
+        let url = `/scrape-leetcode?page=${currentPage}&per_page=50`;
+        
+        // Add search query if exists
+        if (currentSearchQuery) {
+          url += `&search=${encodeURIComponent(currentSearchQuery)}`;
+        }
+        
+        // Add difficulty if not 'all'
+        if (currentDifficulty && currentDifficulty !== 'all') {
+          url += `&difficulty=${encodeURIComponent(currentDifficulty)}`;
+        }
+
+        console.log('Fetching URL:', url); // Debug log
+
+        const response = await fetch(url);
         const data = await response.json();
+
+        console.log('Response data:', data); // Debug log
 
         if (data.status === 'success') {
           problems = data.problems;
           totalPages = data.total_pages;
 
-          // Update stats
-          document.getElementById('total-problems').textContent = data.total;
-          document.getElementById('easy-problems').textContent =
-            problems.filter(p => p.difficulty === 'Easy').length;
-          document.getElementById('medium-problems').textContent =
-            problems.filter(p => p.difficulty === 'Medium').length;
-          document.getElementById('hard-problems').textContent =
-            problems.filter(p => p.difficulty === 'Hard').length;
-
-          // Sort and render problems
-          sortProblems(currentSort.field);
-
-          updatePagination();
+          if (problems.length === 0) {
+            tableBody.innerHTML = `
+              <tr>
+                <td colspan="5" class="text-center">
+                  No problems found. Try adjusting your search criteria.
+                </td>
+              </tr>
+            `;
+          } else {
+            // Render problems
+            renderProblems();
+            updatePagination();
+          }
         } else {
-          tableBody.innerHTML = `<tr><td colspan="5" class="text-center">${data.message}</td></tr>`;
+          console.error('Error from server:', data.message); // Debug log
+          tableBody.innerHTML = `
+            <tr>
+              <td colspan="5" class="text-center text-danger">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                ${data.message || 'Error occurred while loading problems'}
+              </td>
+            </tr>
+          `;
         }
       } catch (error) {
         console.error('Error:', error);
-        tableBody.innerHTML = `<tr><td colspan="5" class="text-center">Error occurred while loading problems</td></tr>`;
+        tableBody.innerHTML = `
+          <tr>
+            <td colspan="5" class="text-center text-danger">
+              <i class="bi bi-exclamation-triangle me-2"></i>
+              Error occurred while loading problems. Please try again later.
+            </td>
+          </tr>
+        `;
       } finally {
         loading.style.display = 'none';
       }
     }
 
-    // Add event listeners for sort buttons
-    document.querySelectorAll('.sort-btn').forEach(button => {
+    // Add debounce function for search
+    function debounce(func, wait) {
+      let timeout;
+      return function executedFunction(...args) {
+        const later = () => {
+          clearTimeout(timeout);
+          func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+      };
+    }
+
+    // Add event listener for search input with debounce
+    const searchInput = document.getElementById('searchInput');
+    const searchButton = document.getElementById('searchButton');
+
+    const debouncedSearch = debounce(() => {
+      currentSearchQuery = searchInput.value;
+      currentPage = 1;
+      loadProblems();
+    }, 500);
+
+    // Search when typing (with debounce)
+    searchInput.addEventListener('input', debouncedSearch);
+
+    // Search when Enter key is pressed
+    searchInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        currentSearchQuery = searchInput.value;
+        currentPage = 1;
+        loadProblems();
+      }
+    });
+
+    // Search when Search button is clicked
+    searchButton.addEventListener('click', () => {
+      currentSearchQuery = searchInput.value;
+      currentPage = 1;
+      loadProblems();
+    });
+
+    // Update difficulty filter click handlers
+    document.querySelectorAll('.btn-group button').forEach(button => {
       button.addEventListener('click', () => {
-        sortProblems(button.dataset.sort);
+        document.querySelectorAll('.btn-group button').forEach(btn => {
+          btn.classList.remove('active');
+        });
+        button.classList.add('active');
+        currentDifficulty = button.dataset.difficulty;
+        currentPage = 1;
+        loadProblems();
       });
     });
 
-    document.addEventListener('DOMContentLoaded', loadProblems);
+    // Add event listener for sort select
+    document.getElementById('sortSelect').addEventListener('change', () => {
+      sortProblems();
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // Set initial sort option
+      document.getElementById('sortSelect').value = 'id:asc';
+      loadProblems();
+    });
   </script>
 </body>
 

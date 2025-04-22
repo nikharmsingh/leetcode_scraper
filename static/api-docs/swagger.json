@@ -2,45 +2,20 @@
   "openapi": "3.0.0",
   "info": {
     "title": "LeetCode Scraper API",
-    "description": "API for scraping and retrieving LeetCode problems",
-    "version": "1.0.0",
-    "contact": {
-      "name": "API Support"
-    }
+    "description": "API for fetching LeetCode problems and user statistics",
+    "version": "1.0.0"
   },
   "servers": [
     {
       "url": "http://localhost:5000",
-      "description": "Local development server"
+      "description": "Development server"
     }
   ],
   "paths": {
-    "/": {
-      "get": {
-        "summary": "Get Homepage",
-        "description": "Returns the homepage of the LeetCode Scraper application",
-        "responses": {
-          "200": {
-            "description": "Homepage HTML content"
-          }
-        }
-      }
-    },
-    "/problems": {
-      "get": {
-        "summary": "Get Problems Page",
-        "description": "Returns the problems page of the LeetCode Scraper application",
-        "responses": {
-          "200": {
-            "description": "Problems page HTML content"
-          }
-        }
-      }
-    },
     "/scrape-leetcode": {
       "get": {
-        "summary": "Get LeetCode Problems",
-        "description": "Retrieves a list of LeetCode problems with pagination",
+        "summary": "Get LeetCode problems",
+        "description": "Retrieves a paginated list of LeetCode problems with optional filtering",
         "parameters": [
           {
             "name": "page",
@@ -49,17 +24,39 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "default": 1
+              "default": 1,
+              "minimum": 1
             }
           },
           {
             "name": "per_page",
             "in": "query",
-            "description": "Number of items per page",
+            "description": "Number of problems per page",
             "required": false,
             "schema": {
               "type": "integer",
-              "default": 50
+              "default": 50,
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Search query to filter problems by name",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "difficulty",
+            "in": "query",
+            "description": "Filter problems by difficulty level",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["all", "Easy", "Medium", "Hard"]
             }
           }
         ],
@@ -73,10 +70,7 @@
                   "properties": {
                     "status": {
                       "type": "string",
-                      "enum": [
-                        "success",
-                        "error"
-                      ]
+                      "example": "success"
                     },
                     "problems": {
                       "type": "array",
@@ -85,47 +79,43 @@
                         "properties": {
                           "id": {
                             "type": "string",
-                            "description": "Problem ID"
+                            "example": "1"
                           },
                           "title": {
                             "type": "string",
-                            "description": "Problem title"
+                            "example": "Two Sum"
                           },
                           "difficulty": {
                             "type": "string",
-                            "enum": [
-                              "Easy",
-                              "Medium",
-                              "Hard"
-                            ],
-                            "description": "Problem difficulty level"
+                            "enum": ["Easy", "Medium", "Hard"]
                           },
                           "acceptance_rate": {
                             "type": "number",
-                            "description": "Problem acceptance rate"
+                            "format": "float",
+                            "example": 48.5
                           },
                           "url": {
                             "type": "string",
-                            "description": "Problem URL on LeetCode"
+                            "example": "https://leetcode.com/problems/two-sum/"
                           }
                         }
                       }
                     },
                     "total": {
                       "type": "integer",
-                      "description": "Total number of problems"
+                      "example": 2000
                     },
                     "current_page": {
                       "type": "integer",
-                      "description": "Current page number"
+                      "example": 1
                     },
                     "total_pages": {
                       "type": "integer",
-                      "description": "Total number of pages"
+                      "example": 40
                     },
                     "per_page": {
                       "type": "integer",
-                      "description": "Number of items per page"
+                      "example": 50
                     }
                   }
                 }
@@ -133,7 +123,7 @@
             }
           },
           "500": {
-            "description": "Error response",
+            "description": "Server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -141,13 +131,228 @@
                   "properties": {
                     "status": {
                       "type": "string",
-                      "enum": [
-                        "error"
-                      ]
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/user-stats": {
+      "post": {
+        "summary": "Get user statistics",
+        "description": "Retrieves statistics for a specific LeetCode user",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "description": "LeetCode username"
+                  }
+                },
+                "required": ["username"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "profile": {
+                          "type": "object",
+                          "properties": {
+                            "ranking": {
+                              "type": "integer",
+                              "example": 100000
+                            },
+                            "reputation": {
+                              "type": "integer",
+                              "example": 100
+                            },
+                            "starRating": {
+                              "type": "number",
+                              "format": "float",
+                              "example": 4.5
+                            }
+                          }
+                        },
+                        "submitStats": {
+                          "type": "object",
+                          "properties": {
+                            "acSubmissionNum": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "difficulty": {
+                                    "type": "string",
+                                    "enum": ["EASY", "MEDIUM", "HARD"]
+                                  },
+                                  "count": {
+                                    "type": "integer"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "totalProblems": {
+                          "type": "object",
+                          "properties": {
+                            "total": {
+                              "type": "integer",
+                              "example": 2000
+                            },
+                            "byDifficulty": {
+                              "type": "object",
+                              "properties": {
+                                "Easy": {
+                                  "type": "integer",
+                                  "example": 500
+                                },
+                                "Medium": {
+                                  "type": "integer",
+                                  "example": 1000
+                                },
+                                "Hard": {
+                                  "type": "integer",
+                                  "example": 500
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
                     },
                     "message": {
                       "type": "string",
-                      "description": "Error message"
+                      "example": "Username is required"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/problem-counts": {
+      "get": {
+        "summary": "Get problem counts",
+        "description": "Retrieves the total count of problems and counts by difficulty",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "total": {
+                          "type": "integer",
+                          "example": 2000
+                        },
+                        "byDifficulty": {
+                          "type": "object",
+                          "properties": {
+                            "Easy": {
+                              "type": "integer",
+                              "example": 500
+                            },
+                            "Medium": {
+                              "type": "integer",
+                              "example": 1000
+                            },
+                            "Hard": {
+                              "type": "integer",
+                              "example": 500
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string"
                     }
                   }
                 }
