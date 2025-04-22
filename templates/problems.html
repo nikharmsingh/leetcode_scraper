@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LeetCode Problems</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary-color: #1a1a1a;
+      --secondary-color: #2d2d2d;
+      --accent-color: #ffa116;
+      --success-color: #00b8a3;
+      --warning-color: #ffc01e;
+      --danger-color: #ef4743;
+      --text-primary: #1a1a1a;
+      --text-secondary: #666666;
+      --background-primary: #ffffff;
+      --background-secondary: #f5f5f5;
+      --border-color: #e5e5e5;
+    }
+
+    body {
+      background-color: var(--background-primary);
+      font-family: 'Inter', sans-serif;
+      color: var(--text-primary);
+    }
+
+    .navbar {
+      background-color: var(--primary-color);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      padding: 0.75rem 0;
+    }
+
+    .navbar-brand {
+      color: white !important;
+      font-weight: 600;
+      font-size: 1.25rem;
+    }
+
+    .back-button {
+      background-color: var(--background-secondary);
+      color: var(--text-primary);
+      border: none;
+      transition: all 0.2s ease;
+      font-weight: 500;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+    }
+
+    .back-button:hover {
+      background-color: var(--border-color);
+      transform: translateX(-3px);
+    }
+
+    .stats-card {
+      background: var(--background-primary);
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      transition: transform 0.2s ease;
+      border: 1px solid var(--border-color);
+    }
+
+    .stats-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .stats-card .card-title {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .stats-card .card-text {
+      color: var(--text-primary);
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-top: 0.5rem;
+    }
+
+    .difficulty-easy {
+      color: var(--success-color);
+      font-weight: 500;
+    }
+
+    .difficulty-medium {
+      color: var(--warning-color);
+      font-weight: 500;
+    }
+
+    .difficulty-hard {
+      color: var(--danger-color);
+      font-weight: 500;
+    }
+
+    .table-container {
+      background: var(--background-primary);
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      padding: 1.5rem;
+      margin-top: 2rem;
+      border: 1px solid var(--border-color);
+    }
+
+    .table {
+      margin-bottom: 0;
+    }
+
+    .table th {
+      color: var(--text-secondary);
+      font-weight: 600;
+      font-size: 0.875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-top: none;
+      padding: 1rem;
+    }
+
+    .table td {
+      vertical-align: middle;
+      padding: 1rem;
+      font-size: 0.9375rem;
+      color: var(--text-primary);
+    }
+
+    .sort-icon {
+      cursor: pointer;
+      transition: transform 0.2s ease;
+      margin-left: 0.5rem;
+    }
+
+    .sort-icon:hover {
+      transform: scale(1.1);
+    }
+
+    .sort-icon.active {
+      color: var(--accent-color);
+    }
+
+    .pagination {
+      margin-top: 2rem;
+    }
+
+    .page-link {
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+      margin: 0 0.25rem;
+      border-radius: 4px !important;
+      padding: 0.5rem 0.75rem;
+      font-weight: 500;
+    }
+
+    .page-item.active .page-link {
+      background-color: var(--accent-color);
+      border-color: var(--accent-color);
+    }
+
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .filter-section {
+      background: var(--background-primary);
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      border: 1px solid var(--border-color);
+    }
+
+    .btn-outline-primary {
+      color: var(--text-primary);
+      border-color: var(--border-color);
+      font-weight: 500;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-outline-primary:hover {
+      background-color: var(--background-secondary);
+      border-color: var(--border-color);
+      color: var(--text-primary);
+    }
+
+    .btn-primary {
+      background-color: var(--accent-color);
+      border-color: var(--accent-color);
+      color: var(--primary-color);
+      font-weight: 500;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary:hover {
+      background-color: #e69100;
+      border-color: #e69100;
+      color: var(--primary-color);
+    }
+
+    .problem-title {
+      color: var(--text-primary);
+      font-weight: 500;
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+
+    .problem-title:hover {
+      color: var(--accent-color);
+    }
+
+    .section-title {
+      color: var(--text-primary);
+      font-weight: 600;
+      font-size: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .stats-row {
+      margin-bottom: 2rem;
+    }
+
+    .table-row {
+      transition: background-color 0.2s ease;
+    }
+
+    .table-row:hover {
+      background-color: var(--background-secondary);
+    }
+  </style>
+</head>
+
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark mb-4">
+    <div class="container">
+      <a class="navbar-brand" href="/">
+        <i class="bi bi-code-square me-2"></i>LeetCode Scraper
+      </a>
+    </div>
+  </nav>
+
+  <div class="container">
+    <a href="/" class="btn back-button mb-4">
+      <i class="bi bi-arrow-left me-2"></i>Back to Home
+    </a>
+
+    <div class="section-title">Problem Statistics</div>
+    <div class="row stats-row">
+      <div class="col-md-3">
+        <div class="stats-card card">
+          <div class="card-body">
+            <h5 class="card-title">Total Problems</h5>
+            <p class="card-text" id="total-problems">Loading...</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stats-card card">
+          <div class="card-body">
+            <h5 class="card-title">Easy Problems</h5>
+            <p class="card-text" id="easy-problems">Loading...</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stats-card card">
+          <div class="card-body">
+            <h5 class="card-title">Medium Problems</h5>
+            <p class="card-text" id="medium-problems">Loading...</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stats-card card">
+          <div class="card-body">
+            <h5 class="card-title">Hard Problems</h5>
+            <p class="card-text" id="hard-problems">Loading...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">Problem List</div>
+    <div class="filter-section">
+      <div class="row align-items-center">
+        <div class="col-md-6">
+          <h5 class="mb-0">Sort By:</h5>
+        </div>
+        <div class="col-md-6 text-end">
+          <div class="btn-group" role="group">
+            <button type="button" class="btn btn-outline-primary sort-btn" data-sort="id">
+              ID <i class="bi bi-arrow-down-up sort-icon" id="sort-id"></i>
+            </button>
+            <button type="button" class="btn btn-outline-primary sort-btn" data-sort="title">
+              Title <i class="bi bi-arrow-down-up sort-icon" id="sort-title"></i>
+            </button>
+            <button type="button" class="btn btn-outline-primary sort-btn" data-sort="difficulty">
+              Difficulty <i class="bi bi-arrow-down-up sort-icon" id="sort-difficulty"></i>
+            </button>
+            <button type="button" class="btn btn-outline-primary sort-btn" data-sort="acceptance">
+              Acceptance <i class="bi bi-arrow-down-up sort-icon" id="sort-acceptance"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="loading" id="loading">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+      <p class="mt-2">Loading problems...</p>
+    </div>
+
+    <div class="table-container">
+      <div class="table-responsive">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Title</th>
+              <th>Difficulty</th>
+              <th>Acceptance Rate</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="problems-table">
+            <!-- Problems will be loaded here -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <nav aria-label="Page navigation" class="d-flex justify-content-center">
+      <ul class="pagination" id="pagination">
+        <!-- Pagination will be loaded here -->
+      </ul>
+    </nav>
+  </div>
+
+  <script>
+    let currentPage = 1;
+    let totalPages = 1;
+    let currentSort = { field: 'id', direction: 'asc' };
+    let problems = [];
+
+    function sortProblems(field) {
+      if (currentSort.field === field) {
+        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+      } else {
+        currentSort.field = field;
+        currentSort.direction = 'asc';
+      }
+
+      // Update sort icons
+      document.querySelectorAll('.sort-icon').forEach(icon => {
+        icon.classList.remove('active', 'bi-arrow-up', 'bi-arrow-down');
+        icon.classList.add('bi-arrow-down-up');
+      });
+
+      const currentIcon = document.getElementById(`sort-${field}`);
+      currentIcon.classList.remove('bi-arrow-down-up');
+      currentIcon.classList.add('active', currentSort.direction === 'asc' ? 'bi-arrow-up' : 'bi-arrow-down');
+
+      // Sort problems
+      problems.sort((a, b) => {
+        let aVal = a[field === 'acceptance' ? 'acceptance_rate' : field];
+        let bVal = b[field === 'acceptance' ? 'acceptance_rate' : field];
+
+        if (field === 'difficulty') {
+          const difficultyOrder = { 'Easy': 1, 'Medium': 2, 'Hard': 3 };
+          aVal = difficultyOrder[aVal];
+          bVal = difficultyOrder[bVal];
+        }
+
+        if (currentSort.direction === 'asc') {
+          return aVal > bVal ? 1 : -1;
+        } else {
+          return aVal < bVal ? 1 : -1;
+        }
+      });
+
+      renderProblems();
+    }
+
+    function renderProblems() {
+      const tableBody = document.getElementById('problems-table');
+      tableBody.innerHTML = '';
+
+      problems.forEach(problem => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${problem.id}</td>
+          <td>${problem.title}</td>
+          <td class="difficulty-${problem.difficulty.toLowerCase()}">${problem.difficulty}</td>
+          <td>${problem.acceptance_rate}%</td>
+          <td>
+            <a href="${problem.url}" target="_blank" class="btn btn-sm btn-primary">
+              <i class="bi bi-box-arrow-up-right"></i> View
+            </a>
+          </td>
+        `;
+        tableBody.appendChild(row);
+      });
+    }
+
+    function updatePagination() {
+      const pagination = document.getElementById('pagination');
+      pagination.innerHTML = '';
+
+      // Previous button
+      const prevLi = document.createElement('li');
+      prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+      prevLi.innerHTML = `
+        <a class="page-link" href="#" aria-label="Previous" ${currentPage === 1 ? 'tabindex="-1"' : ''}>
+          <i class="bi bi-chevron-left"></i>
+        </a>
+      `;
+      prevLi.addEventListener('click', (e) => {
+        if (currentPage > 1) {
+          currentPage--;
+          loadProblems();
+        }
+        e.preventDefault();
+      });
+      pagination.appendChild(prevLi);
+
+      // Page numbers
+      const startPage = Math.max(1, currentPage - 2);
+      const endPage = Math.min(totalPages, currentPage + 2);
+
+      for (let i = startPage; i <= endPage; i++) {
+        const pageLi = document.createElement('li');
+        pageLi.className = `page-item ${i === currentPage ? 'active' : ''}`;
+        pageLi.innerHTML = `<a class="page-link" href="#">${i}</a>`;
+        pageLi.addEventListener('click', (e) => {
+          currentPage = i;
+          loadProblems();
+          e.preventDefault();
+        });
+        pagination.appendChild(pageLi);
+      }
+
+      // Next button
+      const nextLi = document.createElement('li');
+      nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+      nextLi.innerHTML = `
+        <a class="page-link" href="#" aria-label="Next" ${currentPage === totalPages ? 'tabindex="-1"' : ''}>
+          <i class="bi bi-chevron-right"></i>
+        </a>
+      `;
+      nextLi.addEventListener('click', (e) => {
+        if (currentPage < totalPages) {
+          currentPage++;
+          loadProblems();
+        }
+        e.preventDefault();
+      });
+      pagination.appendChild(nextLi);
+    }
+
+    async function loadProblems() {
+      const loading = document.getElementById('loading');
+      const tableBody = document.getElementById('problems-table');
+
+      loading.style.display = 'block';
+      tableBody.innerHTML = '';
+
+      try {
+        const response = await fetch(`/scrape-leetcode?page=${currentPage}`);
+        const data = await response.json();
+
+        if (data.status === 'success') {
+          problems = data.problems;
+          totalPages = data.total_pages;
+
+          // Update stats
+          document.getElementById('total-problems').textContent = data.total;
+          document.getElementById('easy-problems').textContent =
+            problems.filter(p => p.difficulty === 'Easy').length;
+          document.getElementById('medium-problems').textContent =
+            problems.filter(p => p.difficulty === 'Medium').length;
+          document.getElementById('hard-problems').textContent =
+            problems.filter(p => p.difficulty === 'Hard').length;
+
+          // Sort and render problems
+          sortProblems(currentSort.field);
+
+          updatePagination();
+        } else {
+          tableBody.innerHTML = `<tr><td colspan="5" class="text-center">${data.message}</td></tr>`;
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        tableBody.innerHTML = `<tr><td colspan="5" class="text-center">Error occurred while loading problems</td></tr>`;
+      } finally {
+        loading.style.display = 'none';
+      }
+    }
+
+    // Add event listeners for sort buttons
+    document.querySelectorAll('.sort-btn').forEach(button => {
+      button.addEventListener('click', () => {
+        sortProblems(button.dataset.sort);
+      });
+    });
+
+    document.addEventListener('DOMContentLoaded', loadProblems);
+  </script>
+</body>
+
+</html>

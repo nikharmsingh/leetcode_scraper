@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LeetCode Scraper</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary-color: #1a1a1a;
+      --secondary-color: #2d2d2d;
+      --accent-color: #ffa116;
+      --success-color: #00b8a3;
+      --warning-color: #ffc01e;
+      --danger-color: #ef4743;
+      --text-primary: #1a1a1a;
+      --text-secondary: #666666;
+      --background-primary: #ffffff;
+      --background-secondary: #f5f5f5;
+      --border-color: #e5e5e5;
+    }
+
+    body {
+      background-color: var(--background-primary);
+      font-family: 'Inter', sans-serif;
+      color: var(--text-primary);
+    }
+
+    .navbar {
+      background-color: var(--primary-color);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      padding: 0.75rem 0;
+    }
+
+    .navbar-brand {
+      color: white !important;
+      font-weight: 600;
+      font-size: 1.25rem;
+    }
+
+    .hero-section {
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+      color: white;
+      padding: 4rem 0;
+      margin-bottom: 4rem;
+      border-radius: 0 0 1rem 1rem;
+    }
+
+    .hero-title {
+      font-size: 3rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero-subtitle {
+      font-size: 1.25rem;
+      font-weight: 400;
+      opacity: 0.9;
+      margin-bottom: 2rem;
+    }
+
+    .feature-card {
+      background: var(--background-primary);
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      padding: 2rem;
+      height: 100%;
+      border: 1px solid var(--border-color);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .feature-icon {
+      font-size: 2.5rem;
+      margin-bottom: 1.5rem;
+      color: var(--accent-color);
+    }
+
+    .feature-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--text-primary);
+    }
+
+    .feature-description {
+      color: var(--text-secondary);
+      font-size: 0.9375rem;
+      line-height: 1.6;
+    }
+
+    .btn-primary {
+      background-color: var(--accent-color);
+      border-color: var(--accent-color);
+      color: var(--primary-color);
+      font-weight: 500;
+      padding: 0.75rem 1.5rem;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary:hover {
+      background-color: #e69100;
+      border-color: #e69100;
+      color: var(--primary-color);
+      transform: translateY(-2px);
+    }
+
+    .section-title {
+      color: var(--text-primary);
+      font-weight: 600;
+      font-size: 2rem;
+      margin-bottom: 3rem;
+      text-align: center;
+    }
+
+    .section-subtitle {
+      color: var(--text-secondary);
+      font-size: 1.125rem;
+      text-align: center;
+      margin-bottom: 4rem;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .stats-section {
+      background-color: var(--background-secondary);
+      padding: 4rem 0;
+      margin: 4rem 0;
+    }
+
+    .stat-card {
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .stat-number {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--accent-color);
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-label {
+      color: var(--text-secondary);
+      font-size: 1rem;
+      font-weight: 500;
+    }
+
+    .cta-section {
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+      color: white;
+      padding: 4rem 0;
+      border-radius: 1rem;
+      margin-top: 4rem;
+    }
+
+    .cta-title {
+      font-size: 2rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+    }
+
+    .cta-description {
+      font-size: 1.125rem;
+      opacity: 0.9;
+      margin-bottom: 2rem;
+    }
+
+    .btn-outline-light {
+      border: 2px solid white;
+      color: white;
+      font-weight: 500;
+      padding: 0.75rem 1.5rem;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-outline-light:hover {
+      background-color: white;
+      color: var(--primary-color);
+      transform: translateY(-2px);
+    }
+
+    @media (max-width: 768px) {
+      .hero-title {
+        font-size: 2.5rem;
+      }
+
+      .hero-subtitle {
+        font-size: 1.125rem;
+      }
+
+      .feature-card {
+        margin-bottom: 2rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container">
+      <a class="navbar-brand" href="/">
+        <i class="bi bi-code-square me-2"></i>LeetCode Scraper
+      </a>
+    </div>
+  </nav>
+
+  <section class="hero-section">
+    <div class="container">
+      <div class="row align-items-center">
+        <div class="col-lg-6">
+          <h1 class="hero-title">Master LeetCode Problems</h1>
+          <p class="hero-subtitle">
+            Access a comprehensive collection of LeetCode problems, track your progress, and improve your coding skills.
+          </p>
+          <div class="d-flex gap-3">
+            <a href="/problems" class="btn btn-primary">
+              <i class="bi bi-list-ul me-2"></i>View Problems
+            </a>
+            <button id="refreshBtn" class="btn btn-outline-light">
+              <i class="bi bi-arrow-clockwise me-2"></i>Refresh Data
+            </button>
+          </div>
+        </div>
+        <div class="col-lg-6 d-none d-lg-block">
+          <img src="https://leetcode.com/static/images/LeetCode_Sharing.png" alt="LeetCode" class="img-fluid">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="container">
+    <h2 class="section-title">Features</h2>
+    <p class="section-subtitle">
+      Our platform provides everything you need to enhance your coding skills and prepare for technical interviews.
+    </p>
+    <div class="row">
+      <div class="col-md-4">
+        <div class="feature-card">
+          <i class="bi bi-collection feature-icon"></i>
+          <h3 class="feature-title">Comprehensive Problem List</h3>
+          <p class="feature-description">
+            Access a complete list of LeetCode problems with detailed information about difficulty levels and acceptance
+            rates.
+          </p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="feature-card">
+          <i class="bi bi-sort-down feature-icon"></i>
+          <h3 class="feature-title">Smart Sorting</h3>
+          <p class="feature-description">
+            Sort problems by ID, title, difficulty, or acceptance rate to find the perfect challenge for your skill
+            level.
+          </p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="feature-card">
+          <i class="bi bi-graph-up feature-icon"></i>
+          <h3 class="feature-title">Progress Tracking</h3>
+          <p class="feature-description">
+            Monitor your progress with detailed statistics and track your improvement over time.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="stats-section">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-3">
+          <div class="stat-card">
+            <div class="stat-number" id="total-problems">0</div>
+            <div class="stat-label">Total Problems</div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="stat-card">
+            <div class="stat-number" id="easy-problems">0</div>
+            <div class="stat-label">Easy Problems</div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="stat-card">
+            <div class="stat-number" id="medium-problems">0</div>
+            <div class="stat-label">Medium Problems</div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="stat-card">
+            <div class="stat-number" id="hard-problems">0</div>
+            <div class="stat-label">Hard Problems</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-section">
+    <div class="container text-center">
+      <h2 class="cta-title">Ready to Start Coding?</h2>
+      <p class="cta-description">
+        Join thousands of developers who use our platform to improve their coding skills and prepare for technical
+        interviews.
+      </p>
+      <a href="/scrape-leetcode" class="btn btn-outline-light">
+        <i class="bi bi-arrow-right me-2"></i>Get Started
+      </a>
+    </div>
+  </section>
+
+  <script>
+    // Fetch and update stats
+    async function updateStats() {
+      try {
+        const response = await fetch('/scrape-leetcode?page=1');
+        const data = await response.json();
+
+        if (data.status === 'success') {
+          document.getElementById('total-problems').textContent = data.total;
+          document.getElementById('easy-problems').textContent =
+            data.problems.filter(p => p.difficulty === 'Easy').length;
+          document.getElementById('medium-problems').textContent =
+            data.problems.filter(p => p.difficulty === 'Medium').length;
+          document.getElementById('hard-problems').textContent =
+            data.problems.filter(p => p.difficulty === 'Hard').length;
+        }
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+      }
+    }
+
+    // Handle refresh button click
+    document.getElementById('refreshBtn').addEventListener('click', async () => {
+      const button = document.getElementById('refreshBtn');
+      const originalText = button.innerHTML;
+
+      try {
+        button.disabled = true;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Refreshing...';
+
+        const response = await fetch('/scrape-leetcode');
+        const data = await response.json();
+
+        if (data.status === 'success') {
+          // Update stats after refresh
+          await updateStats();
+          // Show success message
+          const toast = document.createElement('div');
+          toast.className = 'position-fixed bottom-0 end-0 p-3';
+          toast.style.zIndex = '5';
+          toast.innerHTML = `
+            <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true">
+              <div class="toast-header">
+                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                <strong class="me-auto">Success</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+              </div>
+              <div class="toast-body">
+                Data refreshed successfully!
+              </div>
+            </div>
+          `;
+          document.body.appendChild(toast);
+          setTimeout(() => toast.remove(), 3000);
+        } else {
+          throw new Error(data.message);
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Error occurred while refreshing data: ' + error.message);
+      } finally {
+        button.disabled = false;
+        button.innerHTML = originalText;
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', updateStats);
+  </script>
+</body>
+
+</html>
