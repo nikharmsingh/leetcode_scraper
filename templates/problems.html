@@ -245,14 +245,27 @@
       <a class="navbar-brand" href="/">
         <i class="bi bi-code-square me-2"></i>LeetCode Scraper
       </a>
+      <div class="d-flex align-items-center">
+        <ul class="navbar-nav me-3">
+          <li class="nav-item">
+            <a class="nav-link" href="/">Home</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link active" href="/problems">Problems</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/user-stats">User Stats</a>
+          </li>
+        </ul>
+        <span class="text-light me-3">Welcome, {{ current_user.username }}</span>
+        <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">
+          <i class="bi bi-box-arrow-right"></i> Logout
+        </a>
+      </div>
     </div>
   </nav>
 
   <div class="container">
-    <a href="/" class="btn back-button mb-4">
-      <i class="bi bi-arrow-left me-2"></i>Back to Home
-    </a>
-
     <div class="section-title">Problem Statistics</div>
     <div class="row stats-row">
       <div class="col-md-3">
@@ -292,7 +305,7 @@
     <div class="section-title">Problem List</div>
     <div class="filter-section">
       <div class="row align-items-center">
-        <div class="col-md-4 mb-3 mb-md-0">
+        <div class="col-md-6 mb-3 mb-md-0">
           <div class="input-group">
             <input type="text" class="form-control" id="searchInput" placeholder="Search problems by name...">
             <button class="btn btn-primary" type="button" id="searchButton">
@@ -300,15 +313,7 @@
             </button>
           </div>
         </div>
-        <div class="col-md-4 mb-3 mb-md-0">
-          <div class="input-group">
-            <input type="text" class="form-control" id="usernameInput" placeholder="Enter LeetCode username...">
-            <button class="btn btn-primary" type="button" id="usernameButton">
-              <i class="bi bi-person me-2"></i>Check Solved
-            </button>
-          </div>
-        </div>
-        <div class="col-md-4 mb-3 mb-md-0">
+        <div class="col-md-6 mb-3 mb-md-0">
           <div class="input-group">
             <label class="input-group-text" for="sortSelect">Sort by</label>
             <select class="form-select" id="sortSelect">
@@ -400,7 +405,10 @@
       const tableBody = document.getElementById('problemsTableBody');
       tableBody.innerHTML = '';
 
+      console.log('Rendering problems:', problems);
+
       problems.forEach(problem => {
+        console.log('Rendering problem:', problem);
         const row = document.createElement('tr');
         row.innerHTML = `
           <td>${problem.id}</td>
@@ -412,7 +420,9 @@
           <td class="difficulty-${problem.difficulty.toLowerCase()}">${problem.difficulty}</td>
           <td>${problem.acceptance_rate}%</td>
           <td>
-            ${problem.solved ? '<i class="bi bi-check-circle-fill text-success"></i>' : ''}
+            <button class="btn btn-link p-0" onclick="toggleSolved('${problem.id}', ${!problem.solved})">
+              <i class="bi ${problem.solved ? 'bi-check-circle-fill text-success' : 'bi-circle'}"></i>
+            </button>
           </td>
           <td>
             <a href="${problem.url}" target="_blank" class="btn btn-sm btn-primary">
@@ -422,6 +432,35 @@
         `;
         tableBody.appendChild(row);
       });
+    }
+
+    async function toggleSolved(problemId, solved) {
+      try {
+        const response = await fetch('/toggle-solved', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            problem_id: problemId,
+            solved: solved
+          })
+        });
+
+        const data = await response.json();
+        if (data.status === 'success') {
+          // Update the problem's solved status in the local array
+          const problem = problems.find(p => p.id === problemId);
+          if (problem) {
+            problem.solved = solved;
+            renderProblems();
+          }
+        } else {
+          console.error('Error toggling solved status:', data.message);
+        }
+      } catch (error) {
+        console.error('Error toggling solved status:', error);
+      }
     }
 
     function updatePagination() {
@@ -488,8 +527,10 @@
 
       try {
         // First fetch the total problem counts
+        console.log('Fetching problem counts...');
         const countsResponse = await fetch('/problem-counts');
         const countsData = await countsResponse.json();
+        console.log('Problem counts response:', countsData);
 
         if (countsData.status === 'success') {
           // Update the stats cards with accurate counts
@@ -512,27 +553,22 @@
           url += `&difficulty=${encodeURIComponent(currentDifficulty)}`;
         }
 
-        // Add username if provided
-        const username = document.getElementById('usernameInput').value;
-        if (username) {
-          url += `&username=${encodeURIComponent(username)}`;
-        }
-
-        console.log('Fetching URL:', url); // Debug log
+        console.log('Fetching problems from URL:', url);
 
         const response = await fetch(url);
         const data = await response.json();
-
-        console.log('Response data:', data); // Debug log
+        console.log('Problems API response:', data);
 
         if (data.status === 'success') {
           problems = data.problems;
           totalPages = data.total_pages;
+          console.log('Processed problems:', problems);
+          console.log('Total pages:', totalPages);
 
           if (problems.length === 0) {
             tableBody.innerHTML = `
               <tr>
-                <td colspan="5" class="text-center">
+                <td colspan="6" class="text-center">
                   No problems found. Try adjusting your search criteria.
                 </td>
               </tr>
@@ -543,10 +579,10 @@
             updatePagination();
           }
         } else {
-          console.error('Error from server:', data.message); // Debug log
+          console.error('Error from server:', data.message);
           tableBody.innerHTML = `
             <tr>
-              <td colspan="5" class="text-center text-danger">
+              <td colspan="6" class="text-center text-danger">
                 <i class="bi bi-exclamation-triangle me-2"></i>
                 ${data.message || 'Error occurred while loading problems'}
               </td>
@@ -554,10 +590,10 @@
           `;
         }
       } catch (error) {
-        console.error('Error:', error);
+        console.error('Error in loadProblems:', error);
         tableBody.innerHTML = `
           <tr>
-            <td colspan="5" class="text-center text-danger">
+            <td colspan="6" class="text-center text-danger">
               <i class="bi bi-exclamation-triangle me-2"></i>
               Error occurred while loading problems. Please try again later.
             </td>
@@ -609,21 +645,6 @@
       currentSearchQuery = searchInput.value;
       currentPage = 1;
       loadProblems();
-    });
-
-    // Add event listener for username button
-    document.getElementById('usernameButton').addEventListener('click', () => {
-      currentPage = 1;
-      loadProblems();
-    });
-
-    // Add event listener for username input Enter key
-    document.getElementById('usernameInput').addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        currentPage = 1;
-        loadProblems();
-      }
     });
 
     // Add event listener for sort select

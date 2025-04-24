@@ -194,11 +194,8 @@
       <a class="navbar-brand" href="/">
         <i class="bi bi-code-square me-2"></i>LeetCode Scraper
       </a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav ms-auto">
+      <div class="d-flex align-items-center">
+        <ul class="navbar-nav me-3">
           <li class="nav-item">
             <a class="nav-link" href="/">Home</a>
           </li>
@@ -208,10 +205,11 @@
           <li class="nav-item">
             <a class="nav-link active" href="/user-stats">User Stats</a>
           </li>
-          <li class="nav-item">
-            <a class="nav-link" href="/api">API</a>
-          </li>
         </ul>
+        <span class="text-light me-3">Welcome, {{ current_user.username }}</span>
+        <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">
+          <i class="bi bi-box-arrow-right"></i> Logout
+        </a>
       </div>
     </div>
   </nav>
@@ -221,7 +219,8 @@
       <h1 class="hero-title">LeetCode User Statistics</h1>
       <div class="search-container">
         <form id="searchForm" class="d-flex gap-2">
-          <input type="text" class="search-input" id="username" name="username" placeholder="Enter LeetCode username..." required>
+          <input type="text" class="search-input" id="username" name="username" placeholder="Enter LeetCode username..."
+            required>
           <button type="submit" class="search-button">
             <i class="bi bi-search me-2"></i>Search
           </button>
@@ -358,14 +357,14 @@
       // Update total solved count
       const totalSolved = solvedMap['All'] || 0;
       const totalProblems = data.totalProblems.total;
-      document.getElementById('totalSolved').textContent = 
+      document.getElementById('totalSolved').textContent =
         `${totalSolved.toLocaleString()} / ${totalProblems.toLocaleString()}`;
 
       // Update each difficulty card with solved/total counts
       ['Easy', 'Medium', 'Hard'].forEach(difficulty => {
         const solved = solvedMap[difficulty] || 0;
         const total = data.totalProblems.byDifficulty[difficulty];
-        document.getElementById(`${difficulty.toLowerCase()}Solved`).textContent = 
+        document.getElementById(`${difficulty.toLowerCase()}Solved`).textContent =
           `${solved.toLocaleString()} / ${total.toLocaleString()}`;
       });
     }
@@ -403,4 +402,4 @@
   </script>
 </body>
 
-</html> 
+</html>

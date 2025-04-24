@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register - LeetCode Scraper</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary-color: #1a1a1a;
+      --secondary-color: #2d2d2d;
+      --accent-color: #ffa116;
+      --text-primary: #1a1a1a;
+      --text-secondary: #666666;
+      --background-primary: #ffffff;
+      --background-secondary: #f5f5f5;
+      --border-color: #e5e5e5;
+    }
+
+    body {
+      background-color: var(--background-secondary);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+    }
+
+    .register-container {
+      max-width: 900px;
+      margin: 2rem auto;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      display: flex;
+    }
+
+    .register-form-section {
+      flex: 1;
+      padding: 3rem;
+    }
+
+    .register-animation-section {
+      flex: 1;
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+      padding: 3rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      position: relative;
+    }
+
+    .animation-container {
+      width: 100%;
+      max-width: 300px;
+      margin-bottom: 2rem;
+    }
+
+    .welcome-text {
+      text-align: center;
+      margin-top: 2rem;
+    }
+
+    .welcome-text h2 {
+      font-size: 1.75rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    .welcome-text p {
+      font-size: 1rem;
+      opacity: 0.9;
+    }
+
+    .form-title {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 0.5rem;
+    }
+
+    .form-subtitle {
+      color: var(--text-secondary);
+      margin-bottom: 2rem;
+    }
+
+    .form-control {
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      border: 2px solid var(--border-color);
+      font-size: 1rem;
+    }
+
+    .form-control:focus {
+      border-color: var(--accent-color);
+      box-shadow: 0 0 0 0.2rem rgba(255, 161, 22, 0.25);
+    }
+
+    .form-label {
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+    }
+
+    .btn-primary {
+      background-color: var(--accent-color);
+      border-color: var(--accent-color);
+      color: var(--primary-color);
+      font-weight: 600;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      width: 100%;
+      margin-top: 1rem;
+    }
+
+    .btn-primary:hover {
+      background-color: #e69100;
+      border-color: #e69100;
+    }
+
+    .alert {
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+    }
+
+    .login-link {
+      text-align: center;
+      margin-top: 1.5rem;
+    }
+
+    .login-link a {
+      color: var(--accent-color);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .login-link a:hover {
+      text-decoration: underline;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-weight: 500;
+      margin-bottom: 2rem;
+    }
+
+    .back-link:hover {
+      color: var(--text-primary);
+    }
+
+    @media (max-width: 768px) {
+      .register-container {
+        flex-direction: column;
+        margin: 1rem;
+      }
+
+      .register-animation-section {
+        padding: 2rem;
+      }
+
+      .register-form-section {
+        padding: 2rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="register-container">
+      <div class="register-form-section">
+        <a href="{{ url_for('home') }}" class="back-link">
+          <i class="bi bi-arrow-left me-2"></i>Back to Home
+        </a>
+
+        <h1 class="form-title">Create Account</h1>
+        <p class="form-subtitle">Join our community of developers</p>
+
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-danger">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ message }}
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('register') }}">
+          <div class="mb-3">
+            <label for="username" class="form-label">Username</label>
+            <input type="text" class="form-control" id="username" name="username" required>
+          </div>
+          <div class="mb-3">
+            <label for="email" class="form-label">Email</label>
+            <input type="email" class="form-control" id="email" name="email" required>
+          </div>
+          <div class="mb-3">
+            <label for="password" class="form-label">Password</label>
+            <input type="password" class="form-control" id="password" name="password" required>
+          </div>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-person-plus me-2"></i>Create Account
+          </button>
+        </form>
+
+        <div class="login-link">
+          <p>Already have an account? <a href="{{ url_for('login') }}">Login</a></p>
+        </div>
+      </div>
+
+      <div class="register-animation-section">
+        <div class="animation-container">
+          <img src="{{ url_for('static', filename='images/developer.gif') }}" alt="Developer Animation"
+            style="width: 100%; max-width: 400px; height: auto;">
+        </div>
+        <div class="welcome-text">
+          <h2>Start Your Journey</h2>
+          <p>Create an account to track your progress and improve your coding skills</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>
