@@ -7,10 +7,15 @@ import time
 import json
 import re
 from urllib.parse import urlencode
-from models import db, User, SolvedProblem
+from models import User, SolvedProblem
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from functools import wraps
 import math
+from pymongo.mongo_client import MongoClient
+from pymongo.server_api import ServerApi
+from bson.objectid import ObjectId
+from datetime import datetime
+import certifi
 
 # Get the absolute path to the current directory
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -23,25 +28,30 @@ app = Flask(__name__,
 # Load environment variables
 load_dotenv()
 
-# Configure database
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///leetcode.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
-app.config['API_KEY'] = os.getenv('API_KEY')  # Add API key configuration
+# Configure MongoDB
+uri = os.getenv('MONGODB_URI')
+client = MongoClient(
+    uri,
+    server_api=ServerApi('1'),
+    tls=True,
+    tlsCAFile=certifi.where()
+)
+db = client.leetcode_scraper
 
-# Initialize extensions
-db.init_app(app)
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
+app.config['API_KEY'] = os.getenv('API_KEY')
+
+# Initialize login manager
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
-# Create database tables
-with app.app_context():
-    db.create_all()
-
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    user_data = db.users.find_one({'_id': ObjectId(user_id)})
+    if user_data:
+        return User.from_dict(user_data)
+    return None
 
 def login_required_json(f):
     @wraps(f)
@@ -74,18 +84,18 @@ def register():
         email = request.form.get('email')
         password = request.form.get('password')
         
-        if User.query.filter_by(username=username).first():
+        if db.users.find_one({'username': username}):
             flash('Username already exists')
             return redirect(url_for('register'))
             
-        if User.query.filter_by(email=email).first():
+        if db.users.find_one({'email': email}):
             flash('Email already exists')
             return redirect(url_for('register'))
             
-        user = User(username=username, email=email)
-        user.set_password(password)
-        db.session.add(user)
-        db.session.commit()
+        user = User(username=username, email=email, password=password)
+        user_dict = user.to_dict()
+        result = db.users.insert_one(user_dict)
+        user._id = result.inserted_id
         
         flash('Registration successful! Please login.')
         return redirect(url_for('login'))
@@ -100,12 +110,14 @@ def login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
-        user = User.query.filter_by(username=username).first()
+        user_data = db.users.find_one({'username': username})
         
-        if user and user.check_password(password):
-            login_user(user)
-            next_page = request.args.get('next')
-            return redirect(next_page or url_for('problems'))
+        if user_data:
+            user = User.from_dict(user_data)
+            if user.check_password(password):
+                login_user(user)
+                next_page = request.args.get('next')
+                return redirect(next_page or url_for('problems'))
             
         flash('Invalid username or password')
         return redirect(url_for('login'))
@@ -135,23 +147,24 @@ def toggle_solved():
             return jsonify({'status': 'error', 'message': 'Problem ID is required'}), 400
             
         # Check if problem already exists for user
-        solved_problem = SolvedProblem.query.filter_by(
-            user_id=current_user.id,
-            problem_id=problem_id
-        ).first()
+        solved_problem = db.solved_problems.find_one({
+            'user_id': str(current_user._id),
+            'problem_id': problem_id
+        })
         
         if solved_problem:
-            solved_problem.solved = solved
+            db.solved_problems.update_one(
+                {'_id': solved_problem['_id']},
+                {'$set': {'solved': solved, 'updated_at': datetime.utcnow()}}
+            )
         else:
-            solved_problem = SolvedProblem(
-                user_id=current_user.id,
+            problem = SolvedProblem(
+                user_id=str(current_user._id),
                 problem_id=problem_id,
                 solved=solved
             )
-            db.session.add(solved_problem)
+            db.solved_problems.insert_one(problem.to_dict())
             
-        db.session.commit()
-        
         return jsonify({'status': 'success'})
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
@@ -216,7 +229,7 @@ def scrape_leetcode():
         # Check if user is authenticated
         user_id = None
         if current_user.is_authenticated:
-            user_id = current_user.id
+            user_id = str(current_user._id)
 
         data = response.json()
         if 'errors' in data:
@@ -229,7 +242,7 @@ def scrape_leetcode():
         # Get solved problems for the current user if authenticated
         solved_problems = set()
         if user_id:
-            solved_problems = {sp.problem_id for sp in SolvedProblem.query.filter_by(user_id=user_id, solved=True).all()}
+            solved_problems = {sp['problem_id'] for sp in db.solved_problems.find({'user_id': user_id, 'solved': True})}
 
         # Process each problem
         processed_problems = []
@@ -258,26 +271,17 @@ def scrape_leetcode():
         })
 
     except Exception as e:
-        app.logger.error(f"Error in scrape_leetcode: {str(e)}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @app.route('/api')
 @login_required
 def api_docs():
-    try:
-        return render_template('api-docs.html')
-    except Exception as e:
-        print(f"Error rendering api-docs template: {str(e)}")
-        return str(e), 500
+    return render_template('api-docs.html')
 
 @app.route('/api/swagger.json')
 @login_required_json
 def swagger_json():
-    try:
-        return send_from_directory(os.path.join(BASE_DIR, 'static', 'api-docs'), 'swagger.json')
-    except Exception as e:
-        print(f"Error serving swagger.json: {str(e)}")
-        return str(e), 500
+    return send_from_directory(os.path.join(BASE_DIR, 'static', 'api-docs'), 'swagger.json')
 
 @app.route('/user-stats', methods=['GET', 'POST'])
 @require_api_key
@@ -320,25 +324,21 @@ def user_stats():
             )
             
             user_data = user_response.json()
-            print(f"User API Response: {user_data}")  # Debug log
             
             if 'errors' in user_data:
                 error_message = user_data['errors'][0]['message'] if user_data['errors'] else 'Unknown error'
-                print(f"GraphQL Error: {error_message}")  # Debug log
                 return jsonify({
                     'status': 'error',
                     'message': f'Error fetching user data: {error_message}'
                 })
             
             if not user_data.get('data'):
-                print("No data in response")  # Debug log
                 return jsonify({
                     'status': 'error',
                     'message': 'Invalid response from LeetCode API'
                 })
             
             if not user_data['data'].get('matchedUser'):
-                print("User not found")  # Debug log
                 return jsonify({
                     'status': 'error',
                     'message': 'User not found'
@@ -379,18 +379,15 @@ def user_stats():
             )
             
             problems_data = problems_response.json()
-            print(f"Problems API Response: {problems_data}")  # Debug log
             
             if 'errors' in problems_data:
                 error_message = problems_data['errors'][0]['message'] if problems_data['errors'] else 'Unknown error'
-                print(f"GraphQL Error: {error_message}")  # Debug log
                 return jsonify({
                     'status': 'error',
                     'message': f'Error fetching problem data: {error_message}'
                 })
             
             if not problems_data.get('data'):
-                print("No data in problems response")  # Debug log
                 return jsonify({
                     'status': 'error',
                     'message': 'Invalid response from LeetCode API for problems'
@@ -439,9 +436,6 @@ def user_stats():
             return jsonify(result)
             
         except Exception as e:
-            print(f"Error: {str(e)}")  # Debug log
-            import traceback
-            print(f"Traceback: {traceback.format_exc()}")  # Full traceback for debugging
             return jsonify({
                 'status': 'error',
                 'message': 'An error occurred while fetching user statistics'
@@ -516,7 +510,6 @@ def problem_counts():
         })
         
     except Exception as e:
-        print(f"Error: {str(e)}")
         return jsonify({
             'status': 'error',
             'message': 'An error occurred while fetching problem counts'
@@ -531,5 +524,6 @@ def health():
 
 if __name__ == '__main__':
     with app.app_context():
-        db.create_all()
+        db.users.create_index('username', unique=True)
+        db.users.create_index('email', unique=True)
     app.run(debug=True) 

@@ -1,15 +1,15 @@
-from flask_sqlalchemy import SQLAlchemy
-from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
+from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime
+from bson.objectid import ObjectId
 
-db = SQLAlchemy()
-
-class User(UserMixin, db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(128))
-    solved_problems = db.relationship('SolvedProblem', backref='user', lazy=True)
+class User(UserMixin):
+    def __init__(self, username, email, password=None, _id=None):
+        self.username = username
+        self.email = email
+        self._id = _id
+        if password:
+            self.set_password(password)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -17,12 +17,52 @@ class User(UserMixin, db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
-class SolvedProblem(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    problem_id = db.Column(db.String(20), nullable=False)
-    solved = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.DateTime, server_default=db.func.now())
-    updated_at = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
+    def get_id(self):
+        return str(self._id) if self._id else None
 
-    __table_args__ = (db.UniqueConstraint('user_id', 'problem_id', name='_user_problem_uc'),) 
+    @staticmethod
+    def from_dict(data):
+        user = User(
+            username=data['username'],
+            email=data['email'],
+            _id=data['_id']
+        )
+        user.password_hash = data['password_hash']
+        return user
+
+    def to_dict(self):
+        return {
+            'username': self.username,
+            'email': self.email,
+            'password_hash': self.password_hash
+        }
+
+class SolvedProblem:
+    def __init__(self, user_id, problem_id, solved=False, _id=None):
+        self.user_id = user_id
+        self.problem_id = problem_id
+        self.solved = solved
+        self._id = _id
+        self.created_at = datetime.utcnow()
+        self.updated_at = datetime.utcnow()
+
+    @staticmethod
+    def from_dict(data):
+        problem = SolvedProblem(
+            user_id=data['user_id'],
+            problem_id=data['problem_id'],
+            solved=data['solved'],
+            _id=data['_id']
+        )
+        problem.created_at = data['created_at']
+        problem.updated_at = data['updated_at']
+        return problem
+
+    def to_dict(self):
+        return {
+            'user_id': self.user_id,
+            'problem_id': self.problem_id,
+            'solved': self.solved,
+            'created_at': self.created_at,
+            'updated_at': self.updated_at
+        } 
