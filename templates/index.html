@@ -409,7 +409,11 @@
     // Fetch and update stats
     async function updateStats() {
       try {
-        const response = await fetch('/problem-counts');
+        const response = await fetch('/problem-counts', {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
         const data = await response.json();
 
         if (data.status === 'success') {
@@ -422,46 +426,9 @@
           document.getElementById('hard-problems').textContent = difficultyTotals.Hard;
         }
       } catch (error) {
-        // Handle error silently
+        console.error('Error fetching stats:', error);
       }
     }
-
-    // Handle refresh button click
-    document.getElementById('refreshBtn').addEventListener('click', async () => {
-      const button = document.getElementById('refreshBtn');
-      const originalText = button.innerHTML;
-
-      try {
-        button.disabled = true;
-        button.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Refreshing...';
-
-        await updateStats();
-
-        // Show success message
-        const toast = document.createElement('div');
-        toast.className = 'position-fixed bottom-0 end-0 p-3';
-        toast.style.zIndex = '5';
-        toast.innerHTML = `
-          <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="toast-header">
-              <i class="bi bi-check-circle-fill text-success me-2"></i>
-              <strong class="me-auto">Success</strong>
-              <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
-            <div class="toast-body">
-              Data refreshed successfully!
-            </div>
-          </div>
-        `;
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 3000);
-      } catch (error) {
-        // Handle error silently
-      } finally {
-        button.disabled = false;
-        button.innerHTML = originalText;
-      }
-    });
 
     // Update stats when page loads
     document.addEventListener('DOMContentLoaded', updateStats);

@@ -46,6 +46,15 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
+@app.before_request
+def before_request():
+    # Check if user is authenticated
+    if not current_user.is_authenticated and request.endpoint and 'static' not in request.endpoint:
+        # Allow access to these routes without authentication
+        public_routes = ['home', 'login', 'register', 'health']
+        if request.endpoint.split('.')[-1] not in public_routes:
+            return redirect(url_for('login'))
+
 # Make API key available in all templates
 @app.context_processor
 def inject_api_key():
@@ -81,6 +90,8 @@ def require_api_key(f):
 
 @app.route('/')
 def home():
+    if current_user.is_authenticated:
+        return redirect(url_for('problems'))
     return render_template('index.html')
 
 @app.route('/register', methods=['GET', 'POST'])
