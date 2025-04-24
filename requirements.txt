@@ -8,6 +8,7 @@ dnspython==2.6.1
 
 # HTTP and API
 requests==2.31.0
+beautifulsoup4==4.12.3
 
 # Environment and Security
 python-dotenv==1.0.1
