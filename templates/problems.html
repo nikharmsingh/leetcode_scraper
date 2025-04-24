@@ -145,20 +145,49 @@
 
     .pagination {
       margin-top: 2rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0.25rem;
     }
 
     .page-link {
       color: var(--text-primary);
       border: 1px solid var(--border-color);
-      margin: 0 0.25rem;
+      margin: 0;
       border-radius: 4px !important;
       padding: 0.5rem 0.75rem;
       font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 2.5rem;
+      height: 2.5rem;
     }
 
     .page-item.active .page-link {
       background-color: var(--accent-color);
       border-color: var(--accent-color);
+      color: var(--primary-color);
+    }
+
+    .page-item.disabled .page-link {
+      color: var(--text-secondary);
+      pointer-events: none;
+      background-color: var(--background-secondary);
+      border-color: var(--border-color);
+    }
+
+    .page-link:hover {
+      background-color: var(--background-secondary);
+      border-color: var(--border-color);
+      color: var(--text-primary);
+    }
+
+    .page-item.active .page-link:hover {
+      background-color: var(--accent-color);
+      border-color: var(--accent-color);
+      color: var(--primary-color);
     }
 
     .loading {
@@ -486,6 +515,23 @@
       const pagination = document.getElementById('pagination');
       pagination.innerHTML = '';
 
+      // First button
+      const firstLi = document.createElement('li');
+      firstLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+      firstLi.innerHTML = `
+        <a class="page-link" href="#" aria-label="First" ${currentPage === 1 ? 'tabindex="-1"' : ''}>
+          <i class="bi bi-chevron-double-left"></i>
+        </a>
+      `;
+      firstLi.addEventListener('click', (e) => {
+        if (currentPage > 1) {
+          currentPage = 1;
+          loadProblems();
+        }
+        e.preventDefault();
+      });
+      pagination.appendChild(firstLi);
+
       // Previous button
       const prevLi = document.createElement('li');
       prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
@@ -507,6 +553,14 @@
       const startPage = Math.max(1, currentPage - 2);
       const endPage = Math.min(totalPages, currentPage + 2);
 
+      // Add ellipsis if needed before start page
+      if (startPage > 1) {
+        const ellipsisLi = document.createElement('li');
+        ellipsisLi.className = 'page-item disabled';
+        ellipsisLi.innerHTML = '<span class="page-link">...</span>';
+        pagination.appendChild(ellipsisLi);
+      }
+
       for (let i = startPage; i <= endPage; i++) {
         const pageLi = document.createElement('li');
         pageLi.className = `page-item ${i === currentPage ? 'active' : ''}`;
@@ -517,6 +571,14 @@
           e.preventDefault();
         });
         pagination.appendChild(pageLi);
+      }
+
+      // Add ellipsis if needed after end page
+      if (endPage < totalPages) {
+        const ellipsisLi = document.createElement('li');
+        ellipsisLi.className = 'page-item disabled';
+        ellipsisLi.innerHTML = '<span class="page-link">...</span>';
+        pagination.appendChild(ellipsisLi);
       }
 
       // Next button
@@ -535,6 +597,23 @@
         e.preventDefault();
       });
       pagination.appendChild(nextLi);
+
+      // Last button
+      const lastLi = document.createElement('li');
+      lastLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+      lastLi.innerHTML = `
+        <a class="page-link" href="#" aria-label="Last" ${currentPage === totalPages ? 'tabindex="-1"' : ''}>
+          <i class="bi bi-chevron-double-right"></i>
+        </a>
+      `;
+      lastLi.addEventListener('click', (e) => {
+        if (currentPage < totalPages) {
+          currentPage = totalPages;
+          loadProblems();
+        }
+        e.preventDefault();
+      });
+      pagination.appendChild(lastLi);
     }
 
     async function loadProblems() {
@@ -568,6 +647,7 @@
                 problems = data.problems;
                 totalPages = data.total_pages;
                 renderProblems();
+                updatePagination();
             }
         } catch (error) {
             // Handle error silently
