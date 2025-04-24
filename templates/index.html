@@ -411,7 +411,8 @@
       try {
         const response = await fetch('/problem-counts', {
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'x-api-key': '{{ api_key }}'
           }
         });
         const data = await response.json();
@@ -424,11 +425,55 @@
           document.getElementById('easy-problems').textContent = difficultyTotals.Easy;
           document.getElementById('medium-problems').textContent = difficultyTotals.Medium;
           document.getElementById('hard-problems').textContent = difficultyTotals.Hard;
+        } else {
+          throw new Error(data.message || 'Failed to fetch stats');
         }
       } catch (error) {
         console.error('Error fetching stats:', error);
+        showToast('Error refreshing data', 'danger');
       }
     }
+
+    // Show toast notification
+    function showToast(message, type = 'success') {
+      const toast = document.createElement('div');
+      toast.className = 'position-fixed bottom-0 end-0 p-3';
+      toast.style.zIndex = '5';
+      toast.innerHTML = `
+        <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true">
+          <div class="toast-header">
+            <i class="bi bi-${type === 'success' ? 'check-circle' : 'exclamation-circle'}-fill text-${type} me-2"></i>
+            <strong class="me-auto">${type === 'success' ? 'Success' : 'Error'}</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+          </div>
+          <div class="toast-body">
+            ${message}
+          </div>
+        </div>
+      `;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+
+    // Handle refresh button click
+    document.getElementById('refreshBtn').addEventListener('click', async () => {
+      const button = document.getElementById('refreshBtn');
+      const originalText = button.innerHTML;
+
+      try {
+        button.disabled = true;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Refreshing...';
+
+        await updateStats();
+        showToast('Data refreshed successfully!');
+      } catch (error) {
+        console.error('Error refreshing data:', error);
+        showToast('Failed to refresh data', 'danger');
+      } finally {
+        button.disabled = false;
+        button.innerHTML = originalText;
+      }
+    });
 
     // Update stats when page loads
     document.addEventListener('DOMContentLoaded', updateStats);
