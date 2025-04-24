@@ -53,9 +53,13 @@ def inject_api_key():
 
 @login_manager.user_loader
 def load_user(user_id):
-    user_data = db.users.find_one({'_id': ObjectId(user_id)})
-    if user_data:
-        return User.from_dict(user_data)
+    try:
+        user_data = db.users.find_one({'_id': ObjectId(user_id)})
+        if user_data:
+            return User.from_dict(user_data)
+    except Exception:
+        # If there's any error (invalid ObjectId, etc.), return None
+        return None
     return None
 
 def login_required_json(f):
