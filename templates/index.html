@@ -406,8 +406,16 @@
   </section>
 
   <script>
+    // Check if user is authenticated
+    const isAuthenticated = document.querySelector('.navbar-auth .text-light') !== null;
+
     // Fetch and update stats
     async function updateStats() {
+      if (!isAuthenticated) {
+        showToast('Please login to refresh data', 'warning');
+        return;
+      }
+
       try {
         const response = await fetch('/problem-counts', {
           headers: {
@@ -442,8 +450,8 @@
       toast.innerHTML = `
         <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true">
           <div class="toast-header">
-            <i class="bi bi-${type === 'success' ? 'check-circle' : 'exclamation-circle'}-fill text-${type} me-2"></i>
-            <strong class="me-auto">${type === 'success' ? 'Success' : 'Error'}</strong>
+            <i class="bi bi-${type === 'success' ? 'check-circle' : type === 'warning' ? 'exclamation-triangle' : 'exclamation-circle'}-fill text-${type} me-2"></i>
+            <strong class="me-auto">${type === 'success' ? 'Success' : type === 'warning' ? 'Warning' : 'Error'}</strong>
             <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
           </div>
           <div class="toast-body">
@@ -457,6 +465,11 @@
 
     // Handle refresh button click
     document.getElementById('refreshBtn').addEventListener('click', async () => {
+      if (!isAuthenticated) {
+        showToast('Please login to refresh data', 'warning');
+        return;
+      }
+
       const button = document.getElementById('refreshBtn');
       const originalText = button.innerHTML;
 
@@ -476,7 +489,11 @@
     });
 
     // Update stats when page loads
-    document.addEventListener('DOMContentLoaded', updateStats);
+    document.addEventListener('DOMContentLoaded', () => {
+      if (isAuthenticated) {
+        updateStats();
+      }
+    });
   </script>
 </body>
 
