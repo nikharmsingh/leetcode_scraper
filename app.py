@@ -27,6 +27,7 @@ load_dotenv()
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///leetcode.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key-here')
+app.config['API_KEY'] = os.getenv('API_KEY', 'your-api-key-here')  # Add API key configuration
 
 # Initialize extensions
 db.init_app(app)
@@ -47,6 +48,15 @@ def login_required_json(f):
     def decorated_function(*args, **kwargs):
         if not current_user.is_authenticated:
             return jsonify({'status': 'error', 'message': 'Authentication required'}), 401
+        return f(*args, **kwargs)
+    return decorated_function
+
+def require_api_key(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        api_key = request.headers.get('x-api-key')
+        if not api_key or api_key != app.config['API_KEY']:
+            return jsonify({'status': 'error', 'message': 'Invalid API key'}), 401
         return f(*args, **kwargs)
     return decorated_function
 
@@ -147,6 +157,7 @@ def toggle_solved():
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @app.route('/scrape-leetcode')
+@require_api_key
 def scrape_leetcode():
     try:
         # Get pagination parameters
@@ -269,7 +280,7 @@ def swagger_json():
         return str(e), 500
 
 @app.route('/user-stats', methods=['GET', 'POST'])
-@login_required
+@require_api_key
 def user_stats():
     if request.method == 'POST':
         username = request.form.get('username')
@@ -439,6 +450,7 @@ def user_stats():
     return render_template('user_stats.html')
 
 @app.route('/problem-counts')
+@require_api_key
 def problem_counts():
     try:
         # Query to get total count and counts by difficulty
