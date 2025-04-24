@@ -49,7 +49,10 @@ login_manager.login_view = 'login'
 # Make API key available in all templates
 @app.context_processor
 def inject_api_key():
-    return {'api_key': app.config['API_KEY']}
+    api_key = app.config['API_KEY']
+    if not api_key:
+        print("Warning: API_KEY is not configured in environment variables")
+    return {'api_key': api_key}
 
 @login_manager.user_loader
 def load_user(user_id):

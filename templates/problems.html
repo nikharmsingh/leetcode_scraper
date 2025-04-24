@@ -377,7 +377,8 @@
     // Function to make API requests with API key
     async function makeApiRequest(url, options = {}) {
         const defaultHeaders = {
-            'x-api-key': API_KEY
+            'x-api-key': API_KEY,
+            'Content-Type': 'application/json'
         };
         
         const response = await fetch(url, {
@@ -395,6 +396,9 @@
         
         return response.json();
     }
+
+    // Add debug logging
+    console.log('API Key configured:', API_KEY ? 'Yes' : 'No');
 
     function sortProblems() {
       const [field, direction] = document.getElementById('sortSelect').value.split(':');
