@@ -397,9 +397,6 @@
         return response.json();
     }
 
-    // Add debug logging
-    console.log('API Key configured:', API_KEY ? 'Yes' : 'No');
-
     function sortProblems() {
       const [field, direction] = document.getElementById('sortSelect').value.split(':');
       currentSort = { field, direction };
@@ -434,10 +431,7 @@
       const tableBody = document.getElementById('problemsTableBody');
       tableBody.innerHTML = '';
 
-      console.log('Rendering problems:', problems);
-
       problems.forEach(problem => {
-        console.log('Rendering problem:', problem);
         const row = document.createElement('tr');
         row.innerHTML = `
           <td>${problem.id}</td>
@@ -484,7 +478,7 @@
                 }
             }
         } catch (error) {
-            console.error('Error toggling solved status:', error);
+            // Handle error silently
         }
     }
 
@@ -576,7 +570,7 @@
                 renderProblems();
             }
         } catch (error) {
-            console.error('Error loading problems:', error);
+            // Handle error silently
         } finally {
             loading.style.display = 'none';
         }

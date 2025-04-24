@@ -49,10 +49,7 @@ login_manager.login_view = 'login'
 # Make API key available in all templates
 @app.context_processor
 def inject_api_key():
-    api_key = app.config['API_KEY']
-    if not api_key:
-        print("Warning: API_KEY is not configured in environment variables")
-    return {'api_key': api_key}
+    return {'api_key': app.config['API_KEY']}
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -182,8 +179,11 @@ def toggle_solved():
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @app.route('/scrape-leetcode')
-@require_api_key
 def scrape_leetcode():
+    # For browser access, just render the template
+    if request.headers.get('x-api-key') != app.config['API_KEY']:
+        return jsonify({'status': 'error', 'message': 'Invalid API key'}), 401
+        
     try:
         # Get pagination parameters
         page = request.args.get('page', 1, type=int)
@@ -296,168 +296,175 @@ def swagger_json():
     return send_from_directory(os.path.join(BASE_DIR, 'static', 'api-docs'), 'swagger.json')
 
 @app.route('/user-stats', methods=['GET', 'POST'])
-@require_api_key
 def user_stats():
-    if request.method == 'POST':
-        username = request.form.get('username')
-        if not username:
-            return jsonify({'status': 'error', 'message': 'Username is required'})
+    if request.method == 'GET':
+        # For browser access, just render the template
+        return render_template('user_stats.html')
+    
+    # For API requests, require API key
+    if request.headers.get('x-api-key') != app.config['API_KEY']:
+        return jsonify({'status': 'error', 'message': 'Invalid API key'}), 401
+        
+    username = request.form.get('username')
+    if not username:
+        return jsonify({'status': 'error', 'message': 'Username is required'})
 
-        try:
-            # Get user stats first
-            user_query = """
-            query getUserProfile($username: String!) {
-              matchedUser(username: $username) {
-                profile {
-                  ranking
-                  reputation
-                  starRating
-                }
-                submitStats: submitStatsGlobal {
-                  acSubmissionNum {
-                    difficulty
-                    count
-                    submissions
-                  }
-                }
+    try:
+        # Get user stats first
+        user_query = """
+        query getUserProfile($username: String!) {
+          matchedUser(username: $username) {
+            profile {
+              ranking
+              reputation
+              starRating
+            }
+            submitStats: submitStatsGlobal {
+              acSubmissionNum {
+                difficulty
+                count
+                submissions
               }
             }
-            """
-            
-            user_variables = {"username": username}
-            
-            user_response = requests.post(
-                'https://leetcode.com/graphql',
-                json={'query': user_query, 'variables': user_variables},
-                headers={
-                    'Content-Type': 'application/json',
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-                }
-            )
-            
-            user_data = user_response.json()
-            
-            if 'errors' in user_data:
-                error_message = user_data['errors'][0]['message'] if user_data['errors'] else 'Unknown error'
-                return jsonify({
-                    'status': 'error',
-                    'message': f'Error fetching user data: {error_message}'
-                })
-            
-            if not user_data.get('data'):
-                return jsonify({
-                    'status': 'error',
-                    'message': 'Invalid response from LeetCode API'
-                })
-            
-            if not user_data['data'].get('matchedUser'):
-                return jsonify({
-                    'status': 'error',
-                    'message': 'User not found'
-                })
-
-            # Get problem counts using the optimized query
-            problems_query = """
-            query problemsetQuestionList($categorySlug: String, $limit: Int, $skip: Int, $filters: QuestionListFilterInput) {
-              all: questionList(categorySlug: $categorySlug, limit: $limit, skip: $skip, filters: $filters) {
-                totalNum
-              }
-              easy: questionList(categorySlug: $categorySlug, filters: {difficulty: EASY}) {
-                totalNum
-              }
-              medium: questionList(categorySlug: $categorySlug, filters: {difficulty: MEDIUM}) {
-                totalNum
-              }
-              hard: questionList(categorySlug: $categorySlug, filters: {difficulty: HARD}) {
-                totalNum
-              }
+          }
+        }
+        """
+        
+        user_variables = {"username": username}
+        
+        user_response = requests.post(
+            'https://leetcode.com/graphql',
+            json={'query': user_query, 'variables': user_variables},
+            headers={
+                'Content-Type': 'application/json',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
             }
-            """
-            
-            problems_variables = {
-                "categorySlug": "",
-                "skip": 0,
-                "limit": 1,  # We only need the count
-                "filters": {}
-            }
-
-            problems_response = requests.post(
-                'https://leetcode.com/graphql',
-                json={'query': problems_query, 'variables': problems_variables},
-                headers={
-                    'Content-Type': 'application/json',
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-                }
-            )
-            
-            problems_data = problems_response.json()
-            
-            if 'errors' in problems_data:
-                error_message = problems_data['errors'][0]['message'] if problems_data['errors'] else 'Unknown error'
-                return jsonify({
-                    'status': 'error',
-                    'message': f'Error fetching problem data: {error_message}'
-                })
-            
-            if not problems_data.get('data'):
-                return jsonify({
-                    'status': 'error',
-                    'message': 'Invalid response from LeetCode API for problems'
-                })
-            
-            result_data = problems_data['data']
-            
-            # Map the difficulty levels from LeetCode's API response (EASY, MEDIUM, HARD)
-            # to our frontend format (Easy, Medium, Hard)
-            difficulty_totals = {
-                'Easy': result_data['easy']['totalNum'],
-                'Medium': result_data['medium']['totalNum'],
-                'Hard': result_data['hard']['totalNum']
-            }
-            
-            # Combine the data
-            result = {
-                'status': 'success',
-                'data': {
-                    'profile': user_data['data']['matchedUser']['profile'],
-                    'submitStats': {
-                        'acSubmissionNum': []
-                    },
-                    'totalProblems': {
-                        'total': result_data['all']['totalNum'],
-                        'byDifficulty': difficulty_totals
-                    }
-                }
-            }
-            
-            # Map user's submission stats from EASY/MEDIUM/HARD to Easy/Medium/Hard
-            difficulty_map = {
-                'EASY': 'Easy',
-                'MEDIUM': 'Medium',
-                'HARD': 'Hard',
-                'All': 'All'
-            }
-            
-            for stat in user_data['data']['matchedUser']['submitStats']['acSubmissionNum']:
-                mapped_difficulty = difficulty_map.get(stat['difficulty'], stat['difficulty'])
-                result['data']['submitStats']['acSubmissionNum'].append({
-                    'difficulty': mapped_difficulty,
-                    'count': stat['count']
-                })
-            
-            return jsonify(result)
-            
-        except Exception as e:
+        )
+        
+        user_data = user_response.json()
+        
+        if 'errors' in user_data:
+            error_message = user_data['errors'][0]['message'] if user_data['errors'] else 'Unknown error'
             return jsonify({
                 'status': 'error',
-                'message': 'An error occurred while fetching user statistics'
+                'message': f'Error fetching user data: {error_message}'
             })
-    
-    return render_template('user_stats.html')
+        
+        if not user_data.get('data'):
+            return jsonify({
+                'status': 'error',
+                'message': 'Invalid response from LeetCode API'
+            })
+        
+        if not user_data['data'].get('matchedUser'):
+            return jsonify({
+                'status': 'error',
+                'message': 'User not found'
+            })
+
+        # Get problem counts using the optimized query
+        problems_query = """
+        query problemsetQuestionList($categorySlug: String, $limit: Int, $skip: Int, $filters: QuestionListFilterInput) {
+          all: questionList(categorySlug: $categorySlug, limit: $limit, skip: $skip, filters: $filters) {
+            totalNum
+          }
+          easy: questionList(categorySlug: $categorySlug, filters: {difficulty: EASY}) {
+            totalNum
+          }
+          medium: questionList(categorySlug: $categorySlug, filters: {difficulty: MEDIUM}) {
+            totalNum
+          }
+          hard: questionList(categorySlug: $categorySlug, filters: {difficulty: HARD}) {
+            totalNum
+          }
+        }
+        """
+        
+        problems_variables = {
+            "categorySlug": "",
+            "skip": 0,
+            "limit": 1,  # We only need the count
+            "filters": {}
+        }
+
+        problems_response = requests.post(
+            'https://leetcode.com/graphql',
+            json={'query': problems_query, 'variables': problems_variables},
+            headers={
+                'Content-Type': 'application/json',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+        )
+        
+        problems_data = problems_response.json()
+        
+        if 'errors' in problems_data:
+            error_message = problems_data['errors'][0]['message'] if problems_data['errors'] else 'Unknown error'
+            return jsonify({
+                'status': 'error',
+                'message': f'Error fetching problem data: {error_message}'
+            })
+        
+        if not problems_data.get('data'):
+            return jsonify({
+                'status': 'error',
+                'message': 'Invalid response from LeetCode API for problems'
+            })
+        
+        result_data = problems_data['data']
+        
+        # Map the difficulty levels from LeetCode's API response (EASY, MEDIUM, HARD)
+        # to our frontend format (Easy, Medium, Hard)
+        difficulty_totals = {
+            'Easy': result_data['easy']['totalNum'],
+            'Medium': result_data['medium']['totalNum'],
+            'Hard': result_data['hard']['totalNum']
+        }
+        
+        # Combine the data
+        result = {
+            'status': 'success',
+            'data': {
+                'profile': user_data['data']['matchedUser']['profile'],
+                'submitStats': {
+                    'acSubmissionNum': []
+                },
+                'totalProblems': {
+                    'total': result_data['all']['totalNum'],
+                    'byDifficulty': difficulty_totals
+                }
+            }
+        }
+        
+        # Map user's submission stats from EASY/MEDIUM/HARD to Easy/Medium/Hard
+        difficulty_map = {
+            'EASY': 'Easy',
+            'MEDIUM': 'Medium',
+            'HARD': 'Hard',
+            'All': 'All'
+        }
+        
+        for stat in user_data['data']['matchedUser']['submitStats']['acSubmissionNum']:
+            mapped_difficulty = difficulty_map.get(stat['difficulty'], stat['difficulty'])
+            result['data']['submitStats']['acSubmissionNum'].append({
+                'difficulty': mapped_difficulty,
+                'count': stat['count']
+            })
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': 'An error occurred while fetching user statistics'
+        })
 
 @app.route('/problem-counts')
-@require_api_key
 def problem_counts():
+    # For browser access, just render the template
+    if request.headers.get('x-api-key') != app.config['API_KEY']:
+        return jsonify({'status': 'error', 'message': 'Invalid API key'}), 401
+        
     try:
         # Query to get total count and counts by difficulty
         problems_query = """
