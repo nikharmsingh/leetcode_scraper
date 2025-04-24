@@ -90,8 +90,6 @@ def require_api_key(f):
 
 @app.route('/')
 def home():
-    if current_user.is_authenticated:
-        return redirect(url_for('problems'))
     return render_template('index.html')
 
 @app.route('/register', methods=['GET', 'POST'])
