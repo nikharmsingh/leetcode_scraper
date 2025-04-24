@@ -26,8 +26,8 @@ load_dotenv()
 # Configure database
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///leetcode.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key-here')
-app.config['API_KEY'] = os.getenv('API_KEY', 'your-api-key-here')  # Add API key configuration
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
+app.config['API_KEY'] = os.getenv('API_KEY')  # Add API key configuration
 
 # Initialize extensions
 db.init_app(app)
