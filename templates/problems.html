@@ -371,6 +371,31 @@
     let currentDifficulty = 'all';
     let currentSearchQuery = '';
 
+    // API Configuration
+    const API_KEY = '{{ api_key }}';
+
+    // Function to make API requests with API key
+    async function makeApiRequest(url, options = {}) {
+        const defaultHeaders = {
+            'x-api-key': API_KEY
+        };
+        
+        const response = await fetch(url, {
+            ...options,
+            headers: {
+                ...defaultHeaders,
+                ...options.headers
+            }
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'API request failed');
+        }
+        
+        return response.json();
+    }
+
     function sortProblems() {
       const [field, direction] = document.getElementById('sortSelect').value.split(':');
       currentSort = { field, direction };
@@ -435,32 +460,28 @@
     }
 
     async function toggleSolved(problemId, solved) {
-      try {
-        const response = await fetch('/toggle-solved', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            problem_id: problemId,
-            solved: solved
-          })
-        });
-
-        const data = await response.json();
-        if (data.status === 'success') {
-          // Update the problem's solved status in the local array
-          const problem = problems.find(p => p.id === problemId);
-          if (problem) {
-            problem.solved = solved;
-            renderProblems();
-          }
-        } else {
-          console.error('Error toggling solved status:', data.message);
+        try {
+            const data = await makeApiRequest('/toggle-solved', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    problem_id: problemId,
+                    solved: solved
+                })
+            });
+            
+            if (data.status === 'success') {
+                const problem = problems.find(p => p.id === problemId);
+                if (problem) {
+                    problem.solved = solved;
+                    renderProblems();
+                }
+            }
+        } catch (error) {
+            console.error('Error toggling solved status:', error);
         }
-      } catch (error) {
-        console.error('Error toggling solved status:', error);
-      }
     }
 
     function updatePagination() {
@@ -519,89 +540,42 @@
     }
 
     async function loadProblems() {
-      const loading = document.getElementById('loading');
-      const tableBody = document.getElementById('problemsTableBody');
+        const loading = document.getElementById('loading');
+        const tableBody = document.getElementById('problemsTableBody');
 
-      loading.style.display = 'block';
-      tableBody.innerHTML = '';
+        loading.style.display = 'block';
+        tableBody.innerHTML = '';
 
-      try {
-        // First fetch the total problem counts
-        console.log('Fetching problem counts...');
-        const countsResponse = await fetch('/problem-counts');
-        const countsData = await countsResponse.json();
-        console.log('Problem counts response:', countsData);
+        try {
+            // First fetch the total problem counts
+            const countsData = await makeApiRequest('/problem-counts');
+            if (countsData.status === 'success') {
+                document.getElementById('total-problems').textContent = countsData.data.total;
+                document.getElementById('easy-problems').textContent = countsData.data.byDifficulty.Easy;
+                document.getElementById('medium-problems').textContent = countsData.data.byDifficulty.Medium;
+                document.getElementById('hard-problems').textContent = countsData.data.byDifficulty.Hard;
+            }
 
-        if (countsData.status === 'success') {
-          // Update the stats cards with accurate counts
-          document.getElementById('total-problems').textContent = countsData.data.total;
-          document.getElementById('easy-problems').textContent = countsData.data.byDifficulty.Easy;
-          document.getElementById('medium-problems').textContent = countsData.data.byDifficulty.Medium;
-          document.getElementById('hard-problems').textContent = countsData.data.byDifficulty.Hard;
+            // Then fetch the problems list
+            let url = `/scrape-leetcode?page=${currentPage}&per_page=50`;
+            if (currentSearchQuery) {
+                url += `&search=${encodeURIComponent(currentSearchQuery)}`;
+            }
+            if (currentDifficulty && currentDifficulty !== 'all') {
+                url += `&difficulty=${encodeURIComponent(currentDifficulty)}`;
+            }
+
+            const data = await makeApiRequest(url);
+            if (data.status === 'success') {
+                problems = data.problems;
+                totalPages = data.total_pages;
+                renderProblems();
+            }
+        } catch (error) {
+            console.error('Error loading problems:', error);
+        } finally {
+            loading.style.display = 'none';
         }
-
-        // Then fetch the problems list
-        let url = `/scrape-leetcode?page=${currentPage}&per_page=50`;
-
-        // Add search query if exists
-        if (currentSearchQuery) {
-          url += `&search=${encodeURIComponent(currentSearchQuery)}`;
-        }
-
-        // Add difficulty if not 'all'
-        if (currentDifficulty && currentDifficulty !== 'all') {
-          url += `&difficulty=${encodeURIComponent(currentDifficulty)}`;
-        }
-
-        console.log('Fetching problems from URL:', url);
-
-        const response = await fetch(url);
-        const data = await response.json();
-        console.log('Problems API response:', data);
-
-        if (data.status === 'success') {
-          problems = data.problems;
-          totalPages = data.total_pages;
-          console.log('Processed problems:', problems);
-          console.log('Total pages:', totalPages);
-
-          if (problems.length === 0) {
-            tableBody.innerHTML = `
-              <tr>
-                <td colspan="6" class="text-center">
-                  No problems found. Try adjusting your search criteria.
-                </td>
-              </tr>
-            `;
-          } else {
-            // Render problems
-            renderProblems();
-            updatePagination();
-          }
-        } else {
-          console.error('Error from server:', data.message);
-          tableBody.innerHTML = `
-            <tr>
-              <td colspan="6" class="text-center text-danger">
-                <i class="bi bi-exclamation-triangle me-2"></i>
-                ${data.message || 'Error occurred while loading problems'}
-              </td>
-            </tr>
-          `;
-        }
-      } catch (error) {
-        console.error('Error in loadProblems:', error);
-        tableBody.innerHTML = `
-          <tr>
-            <td colspan="6" class="text-center text-danger">
-              <i class="bi bi-exclamation-triangle me-2"></i>
-              Error occurred while loading problems. Please try again later.
-            </td>
-          </tr>
-        `;
-      } finally {
-        loading.style.display = 'none';
-      }
     }
 
     // Add debounce function for search

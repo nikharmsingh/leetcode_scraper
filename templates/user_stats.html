@@ -299,47 +299,70 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
+    // API Configuration
+    const API_KEY = '{{ api_key }}';
+
+    // Function to make API requests with API key
+    async function makeApiRequest(url, options = {}) {
+        const defaultHeaders = {
+            'x-api-key': API_KEY
+        };
+        
+        const response = await fetch(url, {
+            ...options,
+            headers: {
+                ...defaultHeaders,
+                ...options.headers
+            }
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'API request failed');
+        }
+        
+        return response.json();
+    }
+
     const searchForm = document.getElementById('searchForm');
     const loading = document.getElementById('loading');
     const errorMessage = document.getElementById('errorMessage');
     const statsContainer = document.getElementById('statsContainer');
 
     searchForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const username = document.getElementById('username').value.trim();
+        e.preventDefault();
+        const username = document.getElementById('username').value.trim();
 
-      if (!username) {
-        showError('Please enter a username');
-        return;
-      }
-
-      showLoading();
-      hideError();
-      hideStats();
-
-      try {
-        const response = await fetch('/user-stats', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: `username=${encodeURIComponent(username)}`
-        });
-
-        const data = await response.json();
-
-        if (data.status === 'error') {
-          showError(data.message);
-          return;
+        if (!username) {
+            showError('Please enter a username');
+            return;
         }
 
-        updateStats(data.data);
-        showStats();
-      } catch (error) {
-        showError('An error occurred while fetching user statistics');
-      } finally {
-        hideLoading();
-      }
+        showLoading();
+        hideError();
+        hideStats();
+
+        try {
+            const data = await makeApiRequest('/user-stats', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `username=${encodeURIComponent(username)}`
+            });
+
+            if (data.status === 'error') {
+                showError(data.message);
+                return;
+            }
+
+            updateStats(data.data);
+            showStats();
+        } catch (error) {
+            showError('An error occurred while fetching user statistics');
+        } finally {
+            hideLoading();
+        }
     });
 
     function updateStats(data) {

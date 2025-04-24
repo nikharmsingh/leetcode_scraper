@@ -46,6 +46,11 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
+# Make API key available in all templates
+@app.context_processor
+def inject_api_key():
+    return {'api_key': app.config['API_KEY']}
+
 @login_manager.user_loader
 def load_user(user_id):
     user_data = db.users.find_one({'_id': ObjectId(user_id)})
@@ -517,10 +522,30 @@ def problem_counts():
 
 @app.route('/health')
 def health():
+    try:
+        # Check MongoDB connection
+        client.admin.command('ping')
+        mongodb_status = 'healthy'
+    except Exception as e:
+        mongodb_status = 'unhealthy'
+        mongodb_error = str(e)
+
+    # Check if API key is configured
+    api_key_status = 'configured' if app.config['API_KEY'] else 'not configured'
+
     return jsonify({
         'status': 'healthy',
-        'message': 'Service is running'
-    }), 200
+        'message': 'Service is running',
+        'components': {
+            'mongodb': {
+                'status': mongodb_status,
+                'error': mongodb_error if mongodb_status == 'unhealthy' else None
+            },
+            'api_key': {
+                'status': api_key_status
+            }
+        }
+    }), 200 if mongodb_status == 'healthy' else 503
 
 if __name__ == '__main__':
     with app.app_context():
