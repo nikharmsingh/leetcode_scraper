@@ -1,10 +1,12 @@
-from flask import Flask, render_template, jsonify, redirect, url_for, request, send_from_directory
+from flask import Flask, render_template, jsonify, redirect, url_for, request, send_from_directory, session
 import requests
 from bs4 import BeautifulSoup
 import os
 from dotenv import load_dotenv
 import time
 import json
+import re
+from urllib.parse import urlencode
 
 # Get the absolute path to the current directory
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -13,7 +15,34 @@ app = Flask(__name__,
             template_folder=os.path.join(BASE_DIR, 'templates'),
             static_folder=os.path.join(BASE_DIR, 'static'),
             static_url_path='')
+app.secret_key = os.urandom(24)  # Required for session management
 load_dotenv()
+
+def authenticate_request(session_obj, url):
+    """Add authentication headers to the request"""
+    leetcode_session = session_obj.cookies.get('LEETCODE_SESSION')
+    csrf_token = session_obj.cookies.get('csrftoken')
+    
+    # Fall back to environment variables if not in session
+    if not leetcode_session or not csrf_token:
+        leetcode_session = os.getenv('LEETCODE_SESSION')
+        csrf_token = os.getenv('LEETCODE_CSRF_TOKEN')
+    
+    if not leetcode_session or not csrf_token:
+        return None
+    
+    headers = {
+        'Cookie': f'LEETCODE_SESSION={leetcode_session}; csrftoken={csrf_token}',
+        'x-csrftoken': csrf_token,
+        'Referer': url,
+        'Referrer-Policy': 'strict-origin-when-cross-origin',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Content-Type': 'application/json',
+        'Accept': '*/*',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Origin': 'https://leetcode.com'
+    }
+    return headers
 
 @app.route('/')
 def home():
@@ -21,7 +50,12 @@ def home():
 
 @app.route('/problems')
 def problems():
-    return render_template('problems.html')
+    # Check if user is logged in
+    username = session.get('leetcode_username')
+    if username:
+        # Update the UI to show logged in state
+        return render_template('problems.html', logged_in=True, username=username)
+    return render_template('problems.html', logged_in=False)
 
 @app.route('/api')
 def api_docs():
@@ -39,6 +73,160 @@ def swagger_json():
         print(f"Error serving swagger.json: {str(e)}")
         return str(e), 500
 
+@app.route('/login')
+def login():
+    try:
+        # Initialize session
+        leetcode_session = requests.Session()
+        
+        # Get CSRF token
+        url = "https://leetcode.com/graphql"
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Content-Type': 'application/json',
+            'Accept': '*/*',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Origin': 'https://leetcode.com',
+            'Referer': 'https://leetcode.com/'
+        }
+        
+        # First query to get CSRF token
+        query = """
+        query globalData {
+          userStatus {
+            isSignedIn
+            username
+          }
+        }
+        """
+        
+        response = leetcode_session.post(url, json={'query': query}, headers=headers)
+        
+        if not response.ok:
+            return jsonify({'status': 'error', 'message': 'Failed to access LeetCode API'}), 400
+        
+        # Get CSRF token from cookies
+        csrf_token = leetcode_session.cookies.get('csrftoken')
+        if not csrf_token:
+            return jsonify({'status': 'error', 'message': 'Could not get CSRF token'}), 400
+        
+        # Store the session and CSRF token
+        session['leetcode_session'] = leetcode_session.cookies.get_dict()
+        session['csrf_token'] = csrf_token
+        
+        return jsonify({
+            'status': 'success',
+            'csrf_token': csrf_token
+        })
+        
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/verify-login', methods=['POST'])
+def verify_login():
+    try:
+        data = request.get_json()
+        username = data.get('username')
+        password = data.get('password')
+        
+        if not username or not password:
+            return jsonify({'status': 'error', 'message': 'Username and password are required'}), 400
+        
+        # Create a session
+        leetcode_session = requests.Session()
+        
+        # Get CSRF token first
+        url = "https://leetcode.com/graphql"
+        headers = authenticate_request(leetcode_session, url)
+        if not headers:
+            return jsonify({'status': 'error', 'message': 'Authentication headers not found'}), 400
+        
+        # Try to login
+        login_query = """
+        mutation login($username: String!, $password: String!) {
+          login(username: $username, password: $password) {
+            ok
+            error
+          }
+        }
+        """
+        
+        response = leetcode_session.post(
+            url,
+            json={
+                'query': login_query,
+                'variables': {
+                    'username': username,
+                    'password': password
+                }
+            },
+            headers=headers
+        )
+        
+        if not response.ok:
+            return jsonify({'status': 'error', 'message': 'Login request failed'}), 400
+        
+        data = response.json()
+        if 'errors' in data:
+            return jsonify({'status': 'error', 'message': data['errors'][0]['message']}), 400
+        
+        login_result = data.get('data', {}).get('login', {})
+        if not login_result.get('ok'):
+            return jsonify({'status': 'error', 'message': login_result.get('error', 'Login failed')}), 400
+        
+        # Verify login by getting user info
+        user_query = """
+        query globalData {
+          userStatus {
+            isSignedIn
+            username
+          }
+        }
+        """
+        
+        response = leetcode_session.post(
+            url,
+            json={'query': user_query},
+            headers=headers
+        )
+        
+        if not response.ok:
+            return jsonify({'status': 'error', 'message': 'Failed to verify login'}), 400
+        
+        data = response.json()
+        if not data.get('data', {}).get('userStatus', {}).get('isSignedIn'):
+            return jsonify({'status': 'error', 'message': 'Login verification failed'}), 400
+        
+        username = data['data']['userStatus']['username']
+        
+        # Store session in app config
+        app.config['leetcode_session'] = leetcode_session
+        app.config['leetcode_username'] = username
+        
+        # Set session cookie for the user
+        session['leetcode_username'] = username
+        session['leetcode_session'] = leetcode_session.cookies.get_dict()
+        session['csrf_token'] = leetcode_session.cookies.get('csrftoken')
+        
+        return jsonify({
+            'status': 'success',
+            'message': 'Login successful',
+            'username': username
+        })
+        
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/logout', methods=['POST'])
+def logout():
+    try:
+        app.config.pop('leetcode_session', None)
+        app.config.pop('leetcode_username', None)
+        session.pop('leetcode_username', None)
+        return jsonify({'status': 'success', 'message': 'Logout successful'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)})
+
 @app.route('/scrape-leetcode')
 def scrape_leetcode():
     try:
@@ -47,9 +235,8 @@ def scrape_leetcode():
         per_page = int(request.args.get('per_page', 50))
         search_query = request.args.get('search', '').strip()
         difficulty = request.args.get('difficulty', '').strip()
+        username = request.args.get('username', '').strip()  # Get username from request
         offset = (page - 1) * per_page
-
-        print(f"Search query: {search_query}, Difficulty: {difficulty}, Page: {page}")  # Debug log
 
         # Using LeetCode's GraphQL API
         url = "https://leetcode.com/graphql"
@@ -86,11 +273,9 @@ def scrape_leetcode():
             "tags": []
         }
 
-        # Add search keywords if provided
         if search_query:
             filters["searchKeywords"] = search_query
 
-        # Add difficulty filter if provided
         if difficulty and difficulty.lower() != 'all':
             filters["difficulty"] = difficulty.upper()
         
@@ -100,8 +285,6 @@ def scrape_leetcode():
             "skip": offset,
             "filters": filters
         }
-
-        print(f"GraphQL variables: {variables}")  # Debug log
         
         response = requests.post(
             url,
@@ -113,26 +296,58 @@ def scrape_leetcode():
         )
         
         if not response.ok:
-            print(f"HTTP Error: {response.status_code}")  # Debug log
-            print(f"Response content: {response.text}")  # Debug log
             return jsonify({
                 'status': 'error',
                 'message': f'HTTP Error: {response.status_code}'
             }), 500
 
         data = response.json()
-        print(f"Response data: {data}")  # Debug log
         
         if 'errors' in data:
-            error_message = data['errors'][0].get('message', 'Unknown GraphQL error')
-            print(f"GraphQL Error: {error_message}")  # Debug log
             return jsonify({
                 'status': 'error',
-                'message': f'GraphQL Error: {error_message}'
+                'message': 'Error fetching problems'
             }), 400
             
         questions = data['data']['problemsetQuestionList']['questions']
         total = data['data']['problemsetQuestionList']['total']
+        
+        # Get solved problems if username is provided
+        solved_problems = set()
+        if username:
+            try:
+                # Get user's solved problems
+                solved_query = """
+                query userProblemsSolved($username: String!) {
+                    matchedUser(username: $username) {
+                        submitStatsGlobal {
+                            acSubmissionNum {
+                                difficulty
+                                count
+                                submissions
+                            }
+                        }
+                    }
+                }
+                """
+                
+                solved_response = requests.post(
+                    url,
+                    headers=headers,
+                    json={
+                        'query': solved_query,
+                        'variables': {'username': username}
+                    }
+                )
+                
+                if solved_response.ok:
+                    solved_data = solved_response.json()
+                    if 'data' in solved_data and 'matchedUser' in solved_data['data']:
+                        for stat in solved_data['data']['matchedUser']['submitStatsGlobal']['acSubmissionNum']:
+                            if stat['count'] > 0:
+                                solved_problems.add(stat['difficulty'].lower())
+            except Exception as e:
+                print(f"Error fetching solved problems: {str(e)}")
         
         problems = []
         for q in questions:
@@ -141,10 +356,11 @@ def scrape_leetcode():
                 'title': q['title'],
                 'difficulty': q['difficulty'],
                 'acceptance_rate': round(float(q['acRate']), 1),
-                'url': f"https://leetcode.com/problems/{q['titleSlug']}/"
+                'url': f"https://leetcode.com/problems/{q['titleSlug']}/",
+                'solved': q['difficulty'].lower() in solved_problems
             })
         
-        total_pages = (total + per_page - 1) // per_page  # Ceiling division
+        total_pages = (total + per_page - 1) // per_page
         
         return jsonify({
             'status': 'success',
@@ -155,13 +371,9 @@ def scrape_leetcode():
             'per_page': per_page
         })
     except Exception as e:
-        import traceback
-        error_traceback = traceback.format_exc()
-        print(f"Error: {str(e)}")  # Debug log
-        print(f"Traceback: {error_traceback}")  # Debug log
         return jsonify({
             'status': 'error',
-            'message': f'An error occurred: {str(e)}'
+            'message': str(e)
         }), 500
 
 @app.route('/user-stats', methods=['GET', 'POST'])

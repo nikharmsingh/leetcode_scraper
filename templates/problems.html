@@ -302,6 +302,14 @@
         </div>
         <div class="col-md-4 mb-3 mb-md-0">
           <div class="input-group">
+            <input type="text" class="form-control" id="usernameInput" placeholder="Enter LeetCode username...">
+            <button class="btn btn-primary" type="button" id="usernameButton">
+              <i class="bi bi-person me-2"></i>Check Solved
+            </button>
+          </div>
+        </div>
+        <div class="col-md-4 mb-3 mb-md-0">
+          <div class="input-group">
             <label class="input-group-text" for="sortSelect">Sort by</label>
             <select class="form-select" id="sortSelect">
               <option value="id:asc">ID (Ascending)</option>
@@ -311,14 +319,6 @@
               <option value="acceptance:asc">Acceptance Rate (Low → High)</option>
               <option value="acceptance:desc">Acceptance Rate (High → Low)</option>
             </select>
-          </div>
-        </div>
-        <div class="col-md-4 text-md-end">
-          <div class="btn-group" role="group">
-            <button type="button" class="btn btn-outline-primary active" data-difficulty="all">All</button>
-            <button type="button" class="btn btn-outline-primary" data-difficulty="Easy">Easy</button>
-            <button type="button" class="btn btn-outline-primary" data-difficulty="Medium">Medium</button>
-            <button type="button" class="btn btn-outline-primary" data-difficulty="Hard">Hard</button>
           </div>
         </div>
       </div>
@@ -340,10 +340,11 @@
               <th>Title</th>
               <th>Difficulty</th>
               <th>Acceptance Rate</th>
+              <th>Status</th>
               <th>Actions</th>
             </tr>
           </thead>
-          <tbody id="problems-table">
+          <tbody id="problemsTableBody">
             <!-- Problems will be loaded here -->
           </tbody>
         </table>
@@ -396,12 +397,11 @@
     }
 
     function renderProblems() {
-      const tableBody = document.getElementById('problems-table');
+      const tableBody = document.getElementById('problemsTableBody');
       tableBody.innerHTML = '';
 
       problems.forEach(problem => {
         const row = document.createElement('tr');
-        row.className = 'table-row';
         row.innerHTML = `
           <td>${problem.id}</td>
           <td>
@@ -411,6 +411,9 @@
           </td>
           <td class="difficulty-${problem.difficulty.toLowerCase()}">${problem.difficulty}</td>
           <td>${problem.acceptance_rate}%</td>
+          <td>
+            ${problem.solved ? '<i class="bi bi-check-circle-fill text-success"></i>' : ''}
+          </td>
           <td>
             <a href="${problem.url}" target="_blank" class="btn btn-sm btn-primary">
               <i class="bi bi-box-arrow-up-right"></i> View
@@ -478,7 +481,7 @@
 
     async function loadProblems() {
       const loading = document.getElementById('loading');
-      const tableBody = document.getElementById('problems-table');
+      const tableBody = document.getElementById('problemsTableBody');
 
       loading.style.display = 'block';
       tableBody.innerHTML = '';
@@ -498,15 +501,21 @@
 
         // Then fetch the problems list
         let url = `/scrape-leetcode?page=${currentPage}&per_page=50`;
-        
+
         // Add search query if exists
         if (currentSearchQuery) {
           url += `&search=${encodeURIComponent(currentSearchQuery)}`;
         }
-        
+
         // Add difficulty if not 'all'
         if (currentDifficulty && currentDifficulty !== 'all') {
           url += `&difficulty=${encodeURIComponent(currentDifficulty)}`;
+        }
+
+        // Add username if provided
+        const username = document.getElementById('usernameInput').value;
+        if (username) {
+          url += `&username=${encodeURIComponent(username)}`;
         }
 
         console.log('Fetching URL:', url); // Debug log
@@ -602,17 +611,19 @@
       loadProblems();
     });
 
-    // Update difficulty filter click handlers
-    document.querySelectorAll('.btn-group button').forEach(button => {
-      button.addEventListener('click', () => {
-        document.querySelectorAll('.btn-group button').forEach(btn => {
-          btn.classList.remove('active');
-        });
-        button.classList.add('active');
-        currentDifficulty = button.dataset.difficulty;
+    // Add event listener for username button
+    document.getElementById('usernameButton').addEventListener('click', () => {
+      currentPage = 1;
+      loadProblems();
+    });
+
+    // Add event listener for username input Enter key
+    document.getElementById('usernameInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
         currentPage = 1;
         loadProblems();
-      });
+      }
     });
 
     // Add event listener for sort select
